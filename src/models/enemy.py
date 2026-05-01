@@ -1,5 +1,5 @@
 import pygame as pg
-from .entity import Entity
+from .game_object import LivingEntity
 
-class Enemy(Entity):
+class Enemy(LivingEntity):
     ...

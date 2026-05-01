@@ -8,16 +8,17 @@ from .config import *
 class World:
     def __init__(self):
         self.player = Drone(
-            pg.Vector2(0,0), pg.Vector2(0,0), 
-            100, DRONE_SIZE)
+            pg.Vector2(0,0), 100
+        )
         self.drill = Drill(
-            pg.Vector2(0,0), pg.Vector2(0,0), 
-            1_000, DRILL_SIZE)
+            pg.Vector2(0,0), 1_000
+        )
         self.enemies = []
-        self.bullets = []
+        self.projectiles = []
         self.map = Map()
         
-    def update(self, dt):
+    def update(self, dt, intents):
+        self.player.handle_intents(intents)
         self.player.update(dt)
         self.drill.update(dt)
         for enemy in self.enemies:
@@ -25,6 +26,10 @@ class World:
 
         self._resolve_collisions()
         self._manage_entities()
+
+    def get_all_objects(self):
+        return self.enemies + self.projectiles + self.map.get_tiles_list() + \
+            [self.player, self.drill]
 
     def _resolve_collisions(self):
         ...

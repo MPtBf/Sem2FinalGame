@@ -2,7 +2,7 @@ from src.core.config import *
 import pygame as pg
 
 class Camera:
-    def __init__(self, size: tuple):
+    def __init__(self, size: pg.Vector2):
         self.offset = pg.Vector2(0, 0)
         self.size = size
 
@@ -12,3 +12,4 @@ class Camera:
     def update(self, target_entity):
         self.offset.x = target_entity.pos.x - self.size[0] // 2
         self.offset.y = target_entity.pos.y - self.size[1] // 2
+        pg.display.flip()
