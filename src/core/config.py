@@ -1,10 +1,12 @@
 from enum import Enum, auto
 import pygame as pg
 
+
 # --- drawing --- 
-TILE_SIZE = 20
+TILE_SIZE = 25
 CAMERA_ZOOM_BASE = 1.0
 CAMERA_ZOOM_TILES = 15
+
 
 # --- window ---
 IS_FULLSCREEN = True
@@ -12,7 +14,11 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 FPS = 60
 
+
 # --- world --- 
+SPAWN_SPACE_RADIUS_TILES = 15
+SPAWN_SPACE_OFFSET_TILES = (-0.5,-7)
+
 class ObjectType(Enum):
     # map
     GROUND = auto()
@@ -26,8 +32,8 @@ class ObjectType(Enum):
 class GroundMaterial(Enum):
     AIR = auto()
     STONE = auto()
-    GRAVEL = auto()
     HARD_STONE = auto()
+
 
 # --- z-index ---
 Z_INDEX = {
@@ -39,7 +45,12 @@ Z_INDEX = {
 }
 
 # --- player ---
-DRONE_SIZE = (15,15)
+DRONE_SIZE = (1.5 * TILE_SIZE, 1.5 * TILE_SIZE)
+DRONE_SPAWN_POS = (-DRONE_SIZE[0]//2, -DRONE_SIZE[1]//2)
+
+DRONE_MAX_SPEED = TILE_SIZE * 10
+DRONE_ACCELERATION = TILE_SIZE * 1.5
+DRONE_DECELERATION = TILE_SIZE * 1
 
 class INTENT(Enum):
     MOVE_UP = auto()
@@ -58,5 +69,12 @@ KEY_TO_INTENT = {
     pg.K_e: INTENT.MINE,
 }
 
+
+# --- drill ---
+DRILL_SIZE = (TILE_SIZE*7, TILE_SIZE*15)
+DRILL_SPAWN_POS = (-DRILL_SIZE[0]//2, -DRILL_SIZE[1] - 3*TILE_SIZE)
+DRILL_SPEED = TILE_SIZE * 1
+
+
 # --- other entities ---
-DRILL_SIZE = (TILE_SIZE*9, TILE_SIZE*7)
+PROJECTILE_SIZE = (TILE_SIZE//8, TILE_SIZE//8)

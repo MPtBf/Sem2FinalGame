@@ -13,7 +13,7 @@ class Game:
         
         self.world = World() 
         self.input_handler = InputHandler()
-        self.camera = Camera(self.screen.get_size())
+        self.camera = Camera(self.screen, pg.Vector2(*self.screen.get_size()))
         self.renderer = Renderer(self.camera)
 
         self.is_running = True
@@ -32,7 +32,9 @@ class Game:
             
             self.world.update(self.dt, intents)
             
-            self.camera.update(self.world.player)
+            self.camera.update(self.world.drone)
+            
             self.renderer.render(self.screen, self.world)
+            pg.display.flip()
             
             self.dt = self.clock.tick(FPS) / 1000

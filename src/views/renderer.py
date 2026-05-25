@@ -1,14 +1,16 @@
-from src.core.config import TILE_SIZE
+from src.core.config import DRILL_SIZE, DRONE_SIZE, TILE_SIZE
 from src.core.world_handler import World
 from .camera import Camera
 import pygame as pg
 from src.models.game_object import ObjectType
 from src.models.map import GroundMaterial
 
-def TempImage(rel_size: tuple, color: tuple):
-    surface = pg.Surface([TILE_SIZE * s for s in rel_size])
-    surface.fill(color)
-    return surface
+def temp_image_func(color: tuple):
+    def surf_func(size):
+        surface = pg.Surface(size)
+        surface.fill(color)
+        return surface
+    return surf_func
 
 
 
@@ -18,25 +20,29 @@ class Renderer:
         self.camera = camera
         # sprites
         self.assets = {
-            ObjectType.DRILL: TempImage((2, 5), (200,200,100)),
-            ObjectType.DRONE: TempImage((0.8, 0.8), (200,0,200)),
+            ObjectType.DRILL: temp_image_func((200,200,100)),
+            ObjectType.DRONE: temp_image_func((200,0,200)),
             ObjectType.GROUND: {
-                GroundMaterial.AIR: TempImage((1, 1), (50,50,50)),
-                GroundMaterial.STONE: TempImage((1, 1), (100,100,100)),
-                GroundMaterial.GRAVEL: TempImage((1, 1), (200,200,200)),
-                GroundMaterial.HARD_STONE: TempImage((1, 1), (150,150,150)),
+                GroundMaterial.AIR: temp_image_func((50,50,50)),
+                GroundMaterial.STONE: temp_image_func((100,100,100)),
+                GroundMaterial.HARD_STONE: temp_image_func((150,150,150)),
             }
         }
 
     def render(self, screen, world: World):
+        screen.fill((0, 0, 0))
         # applying sorting by z-index
-        for entity in sorted(world.get_all_objects(), key=lambda e: e.z_index):
-            sprite = None
+        for object in sorted(world.get_all_objects(), key=lambda e: e.z_index):
+            if not self.camera.is_object_visible(object):
+                continue
             # checking different ground materials
-            if entity.object_type == ObjectType.GROUND:
+            sprite = None
+            if object.object_type == ObjectType.GROUND:
                 ground_assets = self.assets.get(ObjectType.GROUND, {})
-                sprite = ground_assets.get(entity.ground_material)
+                sprite_func = ground_assets.get(object.ground_material)
+                sprite = sprite_func(object.size)
             else:
-                sprite = self.assets.get(entity.object_type)
+                sprite_func = self.assets.get(object.object_type)
+                sprite = sprite_func(object.size)
 
-            screen.blit(sprite, self.camera.apply(entity.pos))
+            screen.blit(sprite, self.camera.apply(object.pos))

@@ -1,8 +1,10 @@
+from src.models.game_object import GameObject
 from src.core.config import *
 import pygame as pg
 
 class Camera:
-    def __init__(self, size: pg.Vector2):
+    def __init__(self, screen, size: pg.Vector2):
+        self.screen = screen
         self.offset = pg.Vector2(0, 0)
         self.size = size
 
@@ -10,6 +12,13 @@ class Camera:
         return target_pos - self.offset
 
     def update(self, target_entity):
-        self.offset.x = target_entity.pos.x - self.size[0] // 2
-        self.offset.y = target_entity.pos.y - self.size[1] // 2
-        pg.display.flip()
+        # use float position for smooth tracking
+        self.offset.x = target_entity.pos.x + target_entity.size.x / 2 - self.size[0] / 2
+        self.offset.y = target_entity.pos.y + target_entity.size.y / 2 - self.size[1] / 2
+
+    def is_object_visible(self, object: GameObject):
+        return self._rect.colliderect(object.rect)
+    
+    @property
+    def _rect(self):
+        return pg.Rect(self.offset.x, self.offset.y, self.size.x, self.size.y)
