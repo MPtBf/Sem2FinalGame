@@ -48,9 +48,9 @@ Z_INDEX = {
 DRONE_SIZE = (1.5 * TILE_SIZE, 1.5 * TILE_SIZE)
 DRONE_SPAWN_POS = (-DRONE_SIZE[0]//2, -DRONE_SIZE[1]//2)
 
-DRONE_MAX_SPEED = TILE_SIZE * 10
+DRONE_MAX_SPEED = TILE_SIZE * 15
 DRONE_ACCELERATION = TILE_SIZE * 1.5
-DRONE_DECELERATION = TILE_SIZE * 1
+DRONE_DECELERATION = TILE_SIZE * 0.75
 
 class INTENT(Enum):
     MOVE_UP = auto()
@@ -78,3 +78,6 @@ DRILL_SPEED = TILE_SIZE * 1
 
 # --- other entities ---
 PROJECTILE_SIZE = (TILE_SIZE//8, TILE_SIZE//8)
+# multiply velocity by it every frame when collided with the wall. 
+# doing that instead of zeroing instantly, to make diagonal movement with collisions smoother
+VELOCITY_LOSS_ON_COLLISION = 0.9  

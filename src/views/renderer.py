@@ -31,10 +31,12 @@ class Renderer:
 
     def render(self, screen, world: World):
         screen.fill((0, 0, 0))
+        
+        # O(1) rendering optimization: get only visible objects from the grid
+        visible_objects = world.get_visible_objects(self.camera._rect)
+        
         # applying sorting by z-index
-        for object in sorted(world.get_all_objects(), key=lambda e: e.z_index):
-            if not self.camera.is_object_visible(object):
-                continue
+        for object in sorted(visible_objects, key=lambda e: e.z_index):
             # checking different ground materials
             sprite = None
             if object.object_type == ObjectType.GROUND:

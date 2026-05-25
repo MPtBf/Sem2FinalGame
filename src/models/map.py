@@ -44,6 +44,20 @@ class Map:
         tiles_list = list(self._tiles.values())
         return [v for v in tiles_list if v is not None]
 
+    def get_tiles_in_rect(self, rect: pg.Rect) -> list[Tile]:
+        # rect boundaries to tile coordinats
+        start_x = rect.left // TILE_SIZE
+        end_x = rect.right // TILE_SIZE
+        start_y = rect.top // TILE_SIZE
+        end_y = rect.bottom // TILE_SIZE
+
+        tiles = []
+        for x in range(int(start_x), int(end_x) + 1):
+            for y in range(int(start_y), int(end_y) + 1):
+                tile = self._tiles.get((x, y))
+                if tile:
+                    tiles.append(tile)
+        return tiles
 
     def mine(self, tile: Tile):
         tile_pos = TC(tile.rect.topleft, revert=True)

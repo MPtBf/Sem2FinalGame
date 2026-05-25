@@ -20,6 +20,10 @@ class Drone(LivingEntity):
             INTENT.MINE: self.mine,
         }
 
+    def update_logic(self, dt, world, intents=None):
+        if intents is None:  intents = []
+        self.handle_intents(intents, dt)
+
     def handle_intents(self, intents, dt):
         # getting desired acceleration frm intents
         desired_acc = pg.Vector2(0, 0)

@@ -61,11 +61,13 @@ class DynamicObject(GameObject):
         self._pos.y += self.velocity.y * dt
         self.sync_rect_to_pos()
 
-    def update(self, dt):
-        # EXPLAIN ME
-        self.move_x(dt)
-        self.move_y(dt)
+    def update_logic(self, dt, world, intents=None):
+        """internal logic:  ai, input handling, velocity updates"""
+        ...
 
+    def after_move(self, axis, world):
+        """called after each axis movement inside collision handling"""
+        ...
 
 class LivingEntity(DynamicObject):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, health):

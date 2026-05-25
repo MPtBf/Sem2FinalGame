@@ -10,19 +10,22 @@ class Drill(LivingEntity):
         super().__init__(pos, pg.Vector2(*DRILL_SIZE), ObjectType.DRILL, health)
         self.storage = {}
 
-    def update_velocity(self, dt, drone):
-        if self._is_saddled_by_drone(drone):
+    def update_logic(self, dt, world, intents=None):
+        if self._is_saddled_by_drone(world.drone):
             self.velocity.y = -DRILL_SPEED
         else:
             self.velocity.y = 0
 
+    def after_move(self, axis, world):
+        # Drill mines after moving along each axis
+        self.mine(world.map)
+
     def _is_saddled_by_drone(self, drone: Drone):
         return self.rect.colliderect(drone.rect)
 
-    def mine(self, map_obj):
-        # find tiles we are colliding with
-        tiles = map_obj.get_tiles_list()
-        collided_with_tiles = [o for o in tiles if o.rect.colliderect(self.rect)]
+    def mine(self, map_obj: Map):
+        # find tiles we are colliding with using optimized grid lookup
+        collided_with_tiles = map_obj.get_tiles_in_rect(self.rect)
         
         for wall in collided_with_tiles:
             if wall.ground_material == GroundMaterial.AIR:
