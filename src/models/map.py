@@ -1,10 +1,16 @@
 
 
 from enum import Enum, auto
-from src.core.config import SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, Z_INDEX, GroundMaterial
+import random
+from src.core.config import (
+    SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, Z_INDEX, 
+    GroundMaterial, CAVE_SPAWN_CHANCE_BASE, CAVE_MIN_TILES_BETWEEN
+)
+from src.core.event_bus import EventBus, EventType
 from src.models.game_object import GameObject, ObjectType
 import pygame as pg
 from src.utils.shortcuts import TC
+from src.models.cave import CaveGenerator
 
 
 class Tile(GameObject):
@@ -18,9 +24,11 @@ class Tile(GameObject):
 
 
 class Map:
-    def __init__(self) -> None:
+    def __init__(self, event_bus: EventBus) -> None:
         # no xy pair - unexplored area
-        self._tiles: dict[Tile] = {}
+        self.event_bus = event_bus
+        self._tiles: dict[tuple[int, int], Tile] = {}
+        self._tiles_mined_since_last_cave = 0
 
         self._init_start_zone()
 
@@ -59,18 +67,51 @@ class Map:
                     tiles.append(tile)
         return tiles
 
-    def mine(self, tile: Tile):
+    def mine(self, tile: Tile, direction: pg.Vector2 = pg.Vector2(0, 0)):
         tile_pos = TC(tile.rect.topleft, revert=True)
         if self._tiles.get(tile_pos) is None:
-            raise Exception(f'trying to mine non-existent tile at pos: {tile_pos}, material: {tile.ground_material}')
+            return
 
-        # сhange material to air
+        # change material to air
         tile.destroy()
+        self._tiles_mined_since_last_cave += 1
+
+        # spawn caves with pseudo-random
+        if self._tiles_mined_since_last_cave >= CAVE_MIN_TILES_BETWEEN:
+            chance = CAVE_SPAWN_CHANCE_BASE
+            if random.random() < chance:
+                spawn_positions = CaveGenerator.generate_cave(self, tile_pos, direction)
+                if spawn_positions:
+                    self.event_bus.emit(EventType.ENEMY_SPAWN, positions=spawn_positions)
+                self._tiles_mined_since_last_cave = 0
+
         # generate neighbors for "unexplored" area tiles
+        self._generate_neighbours(tile_pos)
+
+    def set_tile_at(self, tile_pos: tuple[int, int], material: GroundMaterial):
+        """Sets or updates a tile at specific coordinates."""
+        existing = self._tiles.get(tile_pos)
+        if existing:
+            if existing.ground_material == material:
+                return
+            existing.ground_material = material
+        else:
+            self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
+
+        # ensure spawned walls around air
+        if material == GroundMaterial.AIR:
+            self._generate_neighbours(tile_pos)
+
+    def _generate_neighbours(self, tile_pos):
         for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
             neigh = (tile_pos[0] + dx, tile_pos[1] + dy)
             if self._tiles.get(neigh) is None:
                 self.generate_tile(neigh)
+
+    def is_air(self, tile_pos: tuple[int, int]) -> bool:
+        """Checks if a tile at given position is Air."""
+        tile = self._tiles.get(tile_pos)
+        return tile and tile.ground_material == GroundMaterial.AIR
 
                 
 

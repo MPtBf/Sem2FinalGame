@@ -4,10 +4,13 @@ from src.models.drone import Drone
 from src.models.drill import Drill
 from src.models.enemy import Enemy
 from src.models.map import Map
+from src.utils.shortcuts import TC
+from .event_bus import EventBus, EventType
 from .config import *
 
 class World:
-    def __init__(self):
+    def __init__(self, event_bus: EventBus):
+        self.event_bus = event_bus
         self.drone = Drone(
             pg.Vector2(*DRONE_SPAWN_POS), 100
         )
@@ -16,8 +19,14 @@ class World:
         )
         self.enemies = []
         self.projectiles = []
-        self.map = Map()
+        self.map = Map(self.event_bus)
+
+        # Subscribe to events
+        self.event_bus.subscribe(EventType.ENEMY_SPAWN, self._on_enemy_spawn_event)
         
+    def _on_enemy_spawn_event(self, positions: list[tuple[int, int]]):
+        self.spawn_enemies(positions)
+
     def update(self, dt, intents):
         # update all dynamic objects
         dynamic_objects = self.get_dynamic_objects()
@@ -103,5 +112,16 @@ class World:
         return collided
                 
         
+    def spawn_enemies(self, tile_positions: list[tuple[int, int]]):
+        for pos in tile_positions:
+            world_pos = pg.Vector2(*TC(pos))
+            # center the enemy on the tile
+            center_offset = (pg.Vector2(TILE_SIZE, TILE_SIZE) - pg.Vector2(*ENEMY_SIZE)) / 2
+            enemy = Enemy(world_pos + center_offset)
+            self.enemies.append(enemy)
+
     def _manage_entities(self):
+        # remove dead enemies
+        self.enemies = [e for e in self.enemies if e.health > 0]
+        # remove dead projectiles
         ...

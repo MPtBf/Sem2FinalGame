@@ -22,6 +22,7 @@ class Renderer:
         self.assets = {
             ObjectType.DRILL: temp_image_func((200,200,100)),
             ObjectType.DRONE: temp_image_func((200,0,200)),
+            ObjectType.ENEMY: temp_image_func((255, 0, 0)),
             ObjectType.GROUND: {
                 GroundMaterial.AIR: temp_image_func((50,50,50)),
                 GroundMaterial.STONE: temp_image_func((100,100,100)),

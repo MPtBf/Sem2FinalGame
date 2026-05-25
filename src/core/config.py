@@ -73,11 +73,27 @@ KEY_TO_INTENT = {
 # --- drill ---
 DRILL_SIZE = (TILE_SIZE*7, TILE_SIZE*15)
 DRILL_SPAWN_POS = (-DRILL_SIZE[0]//2, -DRILL_SIZE[1] - 3*TILE_SIZE)
-DRILL_SPEED = TILE_SIZE * 1
+DRILL_SPEED = TILE_SIZE * 5
 
 
 # --- other entities ---
 PROJECTILE_SIZE = (TILE_SIZE//8, TILE_SIZE//8)
+
+ENEMY_SIZE = (TILE_SIZE * 0.8, TILE_SIZE * 0.8)
+ENEMY_HEALTH = 50
+
 # multiply velocity by it every frame when collided with the wall. 
 # doing that instead of zeroing instantly, to make diagonal movement with collisions smoother
 VELOCITY_LOSS_ON_COLLISION = 0.9  
+
+
+# --- caves ---
+CAVE_SPAWN_CHANCE_BASE = 0.05  # 5% base chance
+CAVE_MIN_TILES_BETWEEN = 100 # minimum tiles between caves
+CAVE_LENGTH_RANGE = (20, 40)
+CAVE_THICKNESS_RANGE = (1.5, 3.0)
+CAVE_MAX_ANGLE_CHANGE = 30 # degrees
+THICKNESS_CONTROL_POINTS_NUM_RANGE = (1,3)
+# enemies in caves
+ENEMY_SPAWN_PER_CAVE_RANGE = (0,3)
+ENEMY_MIN_DISTANCE_FROM_CAVE_START = 15 # in tiles

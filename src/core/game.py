@@ -2,6 +2,7 @@ import pygame as pg
 from .config import *
 from .world_handler import World
 from .input_handler import InputHandler
+from .event_bus import EventBus
 from src.views.camera import Camera
 from src.views.renderer import Renderer
 
@@ -11,7 +12,8 @@ class Game:
         self.screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.clock = pg.time.Clock()
         
-        self.world = World() 
+        self.event_bus = EventBus()
+        self.world = World(self.event_bus) 
         self.input_handler = InputHandler()
         self.camera = Camera(self.screen, pg.Vector2(*self.screen.get_size()))
         self.renderer = Renderer(self.camera)

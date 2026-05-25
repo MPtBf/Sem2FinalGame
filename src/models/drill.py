@@ -17,7 +17,7 @@ class Drill(LivingEntity):
             self.velocity.y = 0
 
     def after_move(self, axis, world):
-        # Drill mines after moving along each axis
+        # Drill mines after moving along each axis (made for future: diagonal movement)
         self.mine(world.map)
 
     def _is_saddled_by_drone(self, drone: Drone):
@@ -31,4 +31,4 @@ class Drill(LivingEntity):
             if wall.ground_material == GroundMaterial.AIR:
                 continue
 
-            map_obj.mine(wall)
+            map_obj.mine(wall, self.velocity)
