@@ -1,5 +1,5 @@
 import pygame as pg
-from src.models.game_object import DynamicObject, GameObject
+from src.models.game_object import DynamicObject, GameObject, LivingEntity
 from src.models.drone import Drone
 from src.models.drill import Drill
 from src.models.enemy import Enemy
@@ -14,10 +14,10 @@ class World:
     def __init__(self, event_bus: EventBus, debug=None):
         self.event_bus = event_bus
         self.debug = debug
-        self.drone = Drone(pg.Vector2(*DRONE_SPAWN_POS), 100)
+        self.drone = Drone(pg.Vector2(*DRONE_SPAWN_POS))
         self.drone.event_bus = event_bus
-        self.drill = Drill(pg.Vector2(*DRILL_SPAWN_POS), 1_000)
-        self.enemies = []
+        self.drill = Drill(pg.Vector2(*DRILL_SPAWN_POS))
+        self.enemies: list[Enemy] = []
         self.projectiles = []
         self.map = Map(self.event_bus)
 
@@ -48,6 +48,11 @@ class World:
             if self._resolve_collisions(obj, 'y'):
                 obj.sync_pos_to_rect()
 
+        if self.debug:
+            self.debug.set('player velocity', str(self.drone.velocity))
+            self.debug.set('player acceleration', str(self.drone.acceleration))
+
+        self._handle_combat()
         self._manage_entities()
         
         if self.debug:
@@ -78,6 +83,7 @@ class World:
             # enemy collision (pass through drill)
             for enemy in self.enemies:
                 if obj.rect.colliderect(enemy.rect):
+                    enemy.take_damage(PROJECTILE_DAMAGE)
                     obj.die()
                     return False
             return False
@@ -122,3 +128,12 @@ class World:
         # remove dead enemies
         self.enemies = [e for e in self.enemies if e.health > 0]
         self.projectiles = [p for p in self.projectiles if p.alive]
+
+    def _handle_combat(self):
+        # drone-enemy contact damage
+        for enemy in self.enemies:
+            if self.drone.rect.colliderect(enemy.rect):
+                enemy.try_damage(self.drone)
+
+    def get_living_entities(self) -> list[LivingEntity]:
+        return [self.drone, self.drill] + self.enemies

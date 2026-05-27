@@ -46,18 +46,19 @@ class GroundMaterial(Enum):
 Z_INDEX = {
     ObjectType.GROUND: 0,
     ObjectType.DRILL: 1,
-    ObjectType.ENEMY: 2,
-    ObjectType.DRONE: 3,
+    ObjectType.DRONE: 2,
+    ObjectType.ENEMY: 3,
     ObjectType.PROJECTILE: 4,
 }
 
 # --- player ---
 DRONE_SIZE = (1.5 * TILE_SIZE, 1.5 * TILE_SIZE)
 DRONE_SPAWN_POS = (-DRONE_SIZE[0]//2, -DRONE_SIZE[1]//2)
+DRONE_HEALTH = 100
 
 DRONE_MAX_SPEED = TILE_SIZE * 15
-DRONE_ACCELERATION = TILE_SIZE * 1.5
-DRONE_DECELERATION = TILE_SIZE * 0.75
+DRONE_ACCELERATION = TILE_SIZE * 1.0
+DRONE_DECELERATION = TILE_SIZE * 0.25
 
 class INTENT(Enum):
     MOVE_UP = auto()
@@ -79,6 +80,7 @@ KEY_TO_INTENT = {
 # --- drill ---
 DRILL_SIZE = (TILE_SIZE*7, TILE_SIZE*15)
 DRILL_SPAWN_POS = (-DRILL_SIZE[0]//2, -DRILL_SIZE[1] - 3*TILE_SIZE)
+DRILL_HEALTH = 1000
 DRILL_SPEED = TILE_SIZE * 5
 
 
@@ -87,13 +89,16 @@ PROJECTILE_SIZE = (TILE_SIZE//4, TILE_SIZE//4)
 PROJECTILE_SPEED = TILE_SIZE * 25
 PROJECTILE_LIFETIME = 10.0
 PROJECTILE_INHERIT_PLAYER_VELOCITY = 0.7
+PROJECTILE_DAMAGE = 25
 
 ENEMY_SIZE = (TILE_SIZE * 0.8, TILE_SIZE * 0.8)
 ENEMY_HEALTH = 50
+ENEMY_CONTACT_DAMAGE = 10
+ENEMY_DAMAGE_COOLDOWN = 1.5
 
 # multiply velocity by it every frame when collided with the wall. 
 # doing that instead of zeroing instantly, to make diagonal movement with collisions smoother
-VELOCITY_LOSS_ON_COLLISION = 0.9  
+VELOCITY_LOSS_ON_COLLISION = 0.75  # per frame
 
 
 # --- caves ---
@@ -106,3 +111,11 @@ THICKNESS_CONTROL_POINTS_NUM_RANGE = (1,3)
 # enemies in caves
 ENEMY_SPAWN_PER_CAVE_RANGE = (0,3)
 ENEMY_MIN_DISTANCE_FROM_CAVE_START = 15 # in tiles
+
+
+# --- health bar ---
+HP_BAR_HEIGHT = 4
+HP_BAR_OFFSET_Y = 8
+HP_BAR_SCALE_FACTOR = 0.1
+HP_BAR_BACKGROUND_COLOR = (0, 0, 0)
+HP_BAR_FILL_COLOR = (0, 255, 0)

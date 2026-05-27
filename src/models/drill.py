@@ -3,11 +3,11 @@ import pygame as pg
 from src.models.drone import Drone
 from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
-from src.core.config import DRILL_SIZE, DRILL_SPEED, GroundMaterial
+from src.core.config import DRILL_SIZE, DRILL_SPEED, DRILL_HEALTH, GroundMaterial
 
 class Drill(LivingEntity):
-    def __init__(self, pos: pg.Vector2, health):
-        super().__init__(pos, pg.Vector2(*DRILL_SIZE), ObjectType.DRILL, health)
+    def __init__(self, pos: pg.Vector2):
+        super().__init__(pos, pg.Vector2(*DRILL_SIZE), ObjectType.DRILL, DRILL_HEALTH)
         self.storage = {}
 
     def update_logic(self, dt, world, intents=None):

@@ -19,7 +19,7 @@ class Game:
         self.world = World(self.event_bus, self.debug)
         self.input_handler = InputHandler()
         self.camera = Camera(self.screen, pg.Vector2(*self.screen.get_size()))
-        self.renderer = Renderer(self.camera, self.debug)
+        self.renderer = Renderer(self.camera, self.world, self.debug)
         self.debug_renderer = DebugRenderer() if DEBUG_ENABLED else None
 
         self.is_running = True
@@ -44,7 +44,7 @@ class Game:
 
             self.camera.update(self.world.drone)
 
-            self.renderer.render(self.screen, self.world)
+            self.renderer.render(self.screen)
             
             if self.debug_renderer:
                 entities = [self.world.drone, self.world.drill] + self.world.enemies + self.world.projectiles

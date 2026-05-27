@@ -1,8 +1,9 @@
-from src.core.config import DRILL_SIZE, DRONE_SIZE, TILE_SIZE
+from src.core.config import DRILL_SIZE, DRONE_SIZE, TILE_SIZE, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, HP_BAR_BACKGROUND_COLOR, HP_BAR_FILL_COLOR
 from src.core.world_handler import World
 from .camera import Camera
 import pygame as pg
-from src.models.game_object import ObjectType
+import math
+from src.models.game_object import ObjectType, LivingEntity
 from src.models.map import GroundMaterial
 
 def temp_image_func(color: tuple):
@@ -16,7 +17,7 @@ def temp_image_func(color: tuple):
 
 class Renderer:
     """class to render everything on the screen"""
-    def __init__(self, camera: Camera, debug=None) -> None:
+    def __init__(self, camera: Camera, world: World, debug=None) -> None:
         self.camera = camera
         self.debug = debug
         # sprites
@@ -31,12 +32,13 @@ class Renderer:
                 GroundMaterial.HARD_STONE: temp_image_func((150,150,150)),
             }
         }
+        self.world = world
 
-    def render(self, screen, world: World):
+    def render(self, screen):
         screen.fill((0, 0, 0))
         
         # O(1) rendering optimization: get only visible objects from the grid
-        visible_objects = world.get_visible_objects(self.camera._rect)
+        visible_objects = self.world.get_visible_objects(self.camera._rect)
         
         if self.debug:
             self.debug.set('rendered_objects', len(visible_objects))
@@ -54,3 +56,22 @@ class Renderer:
                 sprite = sprite_func(object.size)
 
             screen.blit(sprite, self.camera.apply(object.pos))
+
+        # render health bars for living entities
+        for entity in self.world.get_living_entities():
+            self._render_health_bar(screen, entity)
+
+    def _render_health_bar(self, screen, entity: LivingEntity):
+        health_ratio = entity.health / entity.max_health
+        bar_width = entity.max_health**0.5 * HP_BAR_SCALE_FACTOR * TILE_SIZE
+        current_width = bar_width * health_ratio
+        
+        bar_x = entity.pos.x + entity.size.x / 2 - bar_width / 2
+        bar_y = entity.pos.y - HP_BAR_OFFSET_Y
+        
+        screen_pos = self.camera.apply(pg.Vector2(bar_x, bar_y))
+        
+        # black background
+        pg.draw.rect(screen, HP_BAR_BACKGROUND_COLOR, (screen_pos.x, screen_pos.y, bar_width, HP_BAR_HEIGHT))
+        # fill health bar
+        pg.draw.rect(screen, HP_BAR_FILL_COLOR, (screen_pos.x, screen_pos.y, current_width, HP_BAR_HEIGHT))

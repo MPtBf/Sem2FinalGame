@@ -72,6 +72,7 @@ class DynamicObject(GameObject):
 class LivingEntity(DynamicObject):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, health):
         super().__init__(pos, size, object_type, velocity=pg.Vector2(0,0))
+        self.max_health = health
         self.health = health
     
     def take_damage(self, amount):

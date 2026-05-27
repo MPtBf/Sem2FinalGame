@@ -2,13 +2,13 @@ import pygame as pg
 
 from src.models.map import Tile
 from .game_object import LivingEntity, ObjectType
-from src.core.config import DRONE_SIZE, INTENT, DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION
+from src.core.config import DRONE_SIZE, INTENT, DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH
 from src.core.event_bus import EventType
 
 
 class Drone(LivingEntity):
-    def __init__(self, pos: pg.Vector2, health):
-        super().__init__(pos, pg.Vector2(*DRONE_SIZE), ObjectType.DRONE, health)
+    def __init__(self, pos: pg.Vector2):
+        super().__init__(pos, pg.Vector2(*DRONE_SIZE), ObjectType.DRONE, DRONE_HEALTH)
         self.inventory = {}
         self.acceleration = pg.Vector2(0, 0)
         self.event_bus = None  # added from WorldHandler separately
