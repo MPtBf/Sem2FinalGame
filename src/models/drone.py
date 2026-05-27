@@ -2,7 +2,9 @@ import pygame as pg
 
 from src.models.map import Tile
 from .game_object import LivingEntity, ObjectType
-from src.core.config import DRONE_SIZE, INTENT, DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH
+from src.settings.base import INTENT
+from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH
+from src.settings.visual import DRONE_SIZE
 from src.core.event_bus import EventType
 
 
@@ -21,6 +23,7 @@ class Drone(LivingEntity):
         }
 
     def update_logic(self, dt, world, intents=None):
+        super().update_logic(dt, world, intents)
         if intents is None:
             intents = {}
         self.handle_intents(intents, dt)

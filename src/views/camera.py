@@ -1,5 +1,5 @@
 from src.models.game_object import GameObject
-from src.core.config import *
+from src.settings.base import *
 import pygame as pg
 
 class Camera:

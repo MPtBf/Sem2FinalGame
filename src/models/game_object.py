@@ -1,6 +1,8 @@
 import pygame as pg
 from enum import Enum, auto
-from src.core.config import Z_INDEX, ObjectType
+from src.settings.base import ObjectType
+from src.settings.balance import KNOCKBACK_FORCE, VELOCITY_LOSS_ON_HIT
+from src.settings.visual import Z_INDEX, HP_BAR_FLASH_DURATION
 
 
 class GameObject:
@@ -74,9 +76,21 @@ class LivingEntity(DynamicObject):
         super().__init__(pos, size, object_type, velocity=pg.Vector2(0,0))
         self.max_health = health
         self.health = health
+        self._damage_flash_timer = 0.0
     
-    def take_damage(self, amount):
+    def update_logic(self, dt, world, intents=None):
+        super().update_logic(dt, world, intents)
+        if self._damage_flash_timer > 0:
+            self._damage_flash_timer -= dt
+    
+    def take_damage(self, amount, knockback_direction: pg.Vector2 = None):
         self.health -= amount
+        self._damage_flash_timer = HP_BAR_FLASH_DURATION
+        
+        if knockback_direction:
+            self.velocity *= VELOCITY_LOSS_ON_HIT
+            self.velocity += knockback_direction.normalize() * KNOCKBACK_FORCE
+        
         if self.health <= 0:
             self.die()
 

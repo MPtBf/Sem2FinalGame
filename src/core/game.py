@@ -1,5 +1,5 @@
 import pygame as pg
-from .config import *
+from src.settings.base import *
 from .world_handler import World
 from .input_handler import InputHandler
 from .event_bus import EventBus

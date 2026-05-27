@@ -1,4 +1,7 @@
-from src.core.config import DRILL_SIZE, DRONE_SIZE, TILE_SIZE, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, HP_BAR_BACKGROUND_COLOR, HP_BAR_FILL_COLOR
+from src.settings.base import TILE_SIZE
+from src.settings.visual import (HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, 
+                             HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, 
+                             HP_BAR_FLASH_COLOR, HP_BAR_FLASH_DURATION)
 from src.core.world_handler import World
 from .camera import Camera
 import pygame as pg
@@ -62,7 +65,7 @@ class Renderer:
             self._render_health_bar(screen, entity)
 
     def _render_health_bar(self, screen, entity: LivingEntity):
-        health_ratio = entity.health / entity.max_health
+        health_ratio = max(0.0, min(1.0, entity.health / entity.max_health))
         bar_width = entity.max_health**0.5 * HP_BAR_SCALE_FACTOR * TILE_SIZE
         current_width = bar_width * health_ratio
         
@@ -73,5 +76,18 @@ class Renderer:
         
         # black background
         pg.draw.rect(screen, HP_BAR_BACKGROUND_COLOR, (screen_pos.x, screen_pos.y, bar_width, HP_BAR_HEIGHT))
+        
+        # determine bar color
+        if entity._damage_flash_timer > 0:
+            # white flash on damage
+            bar_color = HP_BAR_FLASH_COLOR
+        else:
+            # gradient from orange to dark red
+            bar_color = (
+                int(HP_BAR_COLOR_HIGH[0] * health_ratio + HP_BAR_COLOR_LOW[0] * (1 - health_ratio)),
+                int(HP_BAR_COLOR_HIGH[1] * health_ratio + HP_BAR_COLOR_LOW[1] * (1 - health_ratio)),
+                int(HP_BAR_COLOR_HIGH[2] * health_ratio + HP_BAR_COLOR_LOW[2] * (1 - health_ratio))
+            )
+        
         # fill health bar
-        pg.draw.rect(screen, HP_BAR_FILL_COLOR, (screen_pos.x, screen_pos.y, current_width, HP_BAR_HEIGHT))
+        pg.draw.rect(screen, bar_color, (screen_pos.x, screen_pos.y, current_width, HP_BAR_HEIGHT))

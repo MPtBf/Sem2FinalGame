@@ -1,8 +1,9 @@
 import random
 import math
 import pygame as pg
-from src.core.config import (
-    THICKNESS_CONTROL_POINTS_NUM_RANGE, GroundMaterial, CAVE_LENGTH_RANGE, 
+from src.settings.base import GroundMaterial
+from src.settings.balance import (
+    THICKNESS_CONTROL_POINTS_NUM_RANGE, CAVE_LENGTH_RANGE, 
     CAVE_THICKNESS_RANGE, CAVE_MAX_ANGLE_CHANGE, ENEMY_SPAWN_PER_CAVE_RANGE,
     ENEMY_MIN_DISTANCE_FROM_CAVE_START
 )

@@ -7,7 +7,9 @@ from src.models.map import Map
 from src.models.projectile import Projectile
 from src.utils.shortcuts import TC
 from .event_bus import EventBus, EventType
-from .config import *
+from src.settings.base import ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
+from src.settings.balance import PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
+from src.settings.visual import DRONE_SPAWN_POS, DRILL_SPAWN_POS, ENEMY_SIZE
 
 
 class World:
@@ -28,7 +30,7 @@ class World:
         self.spawn_enemies(positions)
 
     def _on_projectile_spawn(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
-        self.projectiles.append(Projectile(pos, direction, shooter_velocity))
+        self.projectiles.append(Projectile(pos, direction, owner_type=ProjectileOwner.PLAYER, shooter_velocity=shooter_velocity))
 
     def update(self, dt, intents: dict):
         dynamic_objects = self.get_dynamic_objects()
@@ -52,6 +54,7 @@ class World:
             self.debug.set('player velocity', str(self.drone.velocity))
             self.debug.set('player acceleration', str(self.drone.acceleration))
 
+        self._handle_projectiles()
         self._handle_combat()
         self._manage_entities()
         
@@ -74,20 +77,7 @@ class World:
         return static_visible + dynamic_visible
 
     def _resolve_collisions(self, obj, axis):
-        if obj.object_type == ObjectType.PROJECTILE:
-            # wall collision
-            for wall in self.map.get_tiles_in_rect(obj.rect):
-                if wall.ground_material != GroundMaterial.AIR and obj.rect.colliderect(wall.rect):
-                    obj.die()
-                    return False
-            # enemy collision (pass through drill)
-            for enemy in self.enemies:
-                if obj.rect.colliderect(enemy.rect):
-                    enemy.take_damage(PROJECTILE_DAMAGE)
-                    obj.die()
-                    return False
-            return False
-
+        # only handle wall collisions physics
         collided = False
         if obj.object_type in (ObjectType.DRILL, ObjectType.DRONE, ObjectType.ENEMY):
             for wall in self.map.get_tiles_in_rect(obj.rect):
@@ -129,11 +119,50 @@ class World:
         self.enemies = [e for e in self.enemies if e.health > 0]
         self.projectiles = [p for p in self.projectiles if p.alive]
 
+    def _handle_projectiles(self):
+        # projectile-wall collisions (simple death check)
+        for projectile in self.projectiles:
+            if not projectile.alive:
+                continue
+            for wall in self.map.get_tiles_in_rect(projectile.rect):
+                if wall.ground_material != GroundMaterial.AIR and projectile.rect.colliderect(wall.rect):
+                    projectile.die()
+                    break
+
     def _handle_combat(self):
+        # projectile damage
+        for projectile in self.projectiles:
+            if not projectile.alive:
+                continue
+            
+            # player projectiles damage enemies
+            if projectile.owner_type == ProjectileOwner.PLAYER:
+                for enemy in self.enemies:
+                    if projectile.rect.colliderect(enemy.rect):
+                        knockback_dir = projectile.velocity if projectile.velocity.length() > 0 else None
+                        enemy.take_damage(PROJECTILE_DAMAGE, knockback_dir)
+                        projectile.die()
+                        break
+            
+            # enemy projectiles damage player entities
+            elif projectile.owner_type == ProjectileOwner.ENEMY:
+                for target in [self.drone, self.drill]:
+                    if projectile.rect.colliderect(target.rect):
+                        knockback_dir = projectile.velocity if projectile.velocity.length() > 0 else None
+                        target.take_damage(PROJECTILE_DAMAGE, knockback_dir)
+                        projectile.die()
+                        break
+        
         # drone-enemy contact damage
         for enemy in self.enemies:
             if self.drone.rect.colliderect(enemy.rect):
-                enemy.try_damage(self.drone)
+                drone_center = self.drone.pos + self.drone.size / 2
+                enemy_center = enemy.pos + enemy.size / 2
+                knockback_dir = (drone_center - enemy_center)
+                if knockback_dir.length() > 0:
+                    enemy.try_damage(self.drone, knockback_dir)
+                else:
+                    enemy.try_damage(self.drone)
 
     def get_living_entities(self) -> list[LivingEntity]:
         return [self.drone, self.drill] + self.enemies

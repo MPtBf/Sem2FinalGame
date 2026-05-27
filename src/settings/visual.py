@@ -1,0 +1,37 @@
+# visual config: colors, UI positioning, sizes, z-index
+
+from enum import Enum, auto
+from .base import TILE_SIZE, ObjectType
+
+
+# --- sizes ---
+DRONE_SIZE = (1.5 * TILE_SIZE, 1.5 * TILE_SIZE)
+DRILL_SIZE = (TILE_SIZE * 7, TILE_SIZE * 15)
+PROJECTILE_SIZE = (TILE_SIZE // 4, TILE_SIZE // 4)
+ENEMY_SIZE = (TILE_SIZE * 0.8, TILE_SIZE * 0.8)
+
+
+# --- spawn positions ---
+DRONE_SPAWN_POS = (-DRONE_SIZE[0] // 2, -DRONE_SIZE[1] // 2)
+DRILL_SPAWN_POS = (-DRILL_SIZE[0] // 2, -DRILL_SIZE[1] - 3 * TILE_SIZE)
+
+
+# --- z-index ---
+Z_INDEX = {
+    ObjectType.GROUND: 0,
+    ObjectType.DRILL: 1,
+    ObjectType.DRONE: 2,
+    ObjectType.ENEMY: 3,
+    ObjectType.PROJECTILE: 4,
+}
+
+
+# --- health bar ---
+HP_BAR_HEIGHT = 4
+HP_BAR_OFFSET_Y = 8
+HP_BAR_SCALE_FACTOR = 0.1
+HP_BAR_BACKGROUND_COLOR = (0, 0, 0)
+HP_BAR_COLOR_HIGH = (255, 120, 0)  # orange
+HP_BAR_COLOR_LOW = (120, 0, 0)  # dark red
+HP_BAR_FLASH_COLOR = (255, 255, 255)  # white flash on damage
+HP_BAR_FLASH_DURATION = 0.2  # seconds

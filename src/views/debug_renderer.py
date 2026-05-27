@@ -1,5 +1,5 @@
 import pygame as pg
-from src.core.config import DEBUG_SHOW_HITBOXES, DEBUG_SHOW_FPS, DEBUG_SHOW_STATS
+from src.settings.base import DEBUG_SHOW_HITBOXES, DEBUG_SHOW_FPS, DEBUG_SHOW_STATS
 from src.utils.debug_collector import DebugCollector
 from src.views.camera import Camera
 

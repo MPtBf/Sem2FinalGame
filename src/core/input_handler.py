@@ -1,5 +1,5 @@
 import pygame as pg
-from src.core.config import INTENT, KEY_TO_INTENT
+from src.settings.base import INTENT, KEY_TO_INTENT
 
 
 class InputHandler:

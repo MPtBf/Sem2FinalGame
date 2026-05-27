@@ -3,7 +3,9 @@ import pygame as pg
 from src.models.drone import Drone
 from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
-from src.core.config import DRILL_SIZE, DRILL_SPEED, DRILL_HEALTH, GroundMaterial
+from src.settings.base import GroundMaterial
+from src.settings.balance import DRILL_SPEED, DRILL_HEALTH
+from src.settings.visual import DRILL_SIZE
 
 class Drill(LivingEntity):
     def __init__(self, pos: pg.Vector2):

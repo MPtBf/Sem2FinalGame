@@ -1,4 +1,4 @@
-from src.core.config import TILE_SIZE
+from src.settings.base import TILE_SIZE
 
 def TC(x, y=None, revert=False):
     """multiply tile pos by TILE_SIZE to get coordinates

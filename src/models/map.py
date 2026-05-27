@@ -2,10 +2,10 @@
 
 from enum import Enum, auto
 import random
-from src.core.config import (
-    SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, Z_INDEX, 
-    GroundMaterial, CAVE_SPAWN_CHANCE_BASE, CAVE_MIN_TILES_BETWEEN
+from src.settings.base import (
+    SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, GroundMaterial
 )
+from src.settings.balance import CAVE_SPAWN_CHANCE_BASE, CAVE_MIN_TILES_BETWEEN
 from src.core.event_bus import EventBus, EventType
 from src.models.game_object import GameObject, ObjectType
 import pygame as pg

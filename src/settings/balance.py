@@ -1,0 +1,52 @@
+# gameplay balance config: health, damage, speed, cooldowns
+
+from .base import TILE_SIZE
+
+
+# --- player ---
+DRONE_HEALTH = 100
+DRONE_MAX_SPEED = TILE_SIZE * 15
+DRONE_ACCELERATION = TILE_SIZE * 1.0
+DRONE_DECELERATION = TILE_SIZE * 0.25
+
+
+# --- drill ---
+DRILL_HEALTH = 1000
+DRILL_SPEED = TILE_SIZE * 5
+
+
+# --- projectile ---
+PROJECTILE_SPEED = TILE_SIZE * 25
+PROJECTILE_LIFETIME = 10.0
+PROJECTILE_INHERIT_PLAYER_VELOCITY = 0.7
+PROJECTILE_DAMAGE = 20
+
+
+# --- enemy ---
+ENEMY_HEALTH = 50
+ENEMY_CONTACT_DAMAGE = 10
+ENEMY_DAMAGE_COOLDOWN = 1.5
+ENEMY_FRICTION = 0.1
+
+
+# --- combat ---
+KNOCKBACK_FORCE = TILE_SIZE * 8
+VELOCITY_LOSS_ON_HIT = 0.2  # keep 20% of velocity when hit
+
+
+# --- physics ---
+# multiply velocity by it every frame when collided with the wall
+VELOCITY_LOSS_ON_COLLISION = 0.75
+
+
+# --- caves ---
+CAVE_SPAWN_CHANCE_BASE = 0.05
+CAVE_MIN_TILES_BETWEEN = 100
+CAVE_LENGTH_RANGE = (20, 40)
+CAVE_THICKNESS_RANGE = (1.5, 3.0)
+CAVE_MAX_ANGLE_CHANGE = 30  # degrees
+THICKNESS_CONTROL_POINTS_NUM_RANGE = (1, 3)
+
+# enemies in caves
+ENEMY_SPAWN_PER_CAVE_RANGE = (0, 3)
+ENEMY_MIN_DISTANCE_FROM_CAVE_START = 15  # in tiles
