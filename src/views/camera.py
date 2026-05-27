@@ -10,6 +10,11 @@ class Camera:
 
     def apply(self, target_pos):
         return target_pos - self.offset
+    
+    def world_to_screen_rect(self, world_rect: pg.Rect) -> pg.Rect:
+        # converts world coordinates to screen position
+        screen_pos = self.apply(pg.Vector2(world_rect.x, world_rect.y))
+        return pg.Rect(screen_pos.x, screen_pos.y, world_rect.width, world_rect.height)
 
     def update(self, target_entity):
         # use float position for smooth tracking

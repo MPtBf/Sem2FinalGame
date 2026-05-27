@@ -5,6 +5,8 @@ from .input_handler import InputHandler
 from .event_bus import EventBus
 from src.views.camera import Camera
 from src.views.renderer import Renderer
+from src.utils.debug_collector import DebugCollector
+from src.views.debug_renderer import DebugRenderer
 
 
 class Game:
@@ -13,10 +15,12 @@ class Game:
         self.clock = pg.time.Clock()
 
         self.event_bus = EventBus()
-        self.world = World(self.event_bus)
+        self.debug = DebugCollector() if DEBUG_ENABLED else None
+        self.world = World(self.event_bus, self.debug)
         self.input_handler = InputHandler()
         self.camera = Camera(self.screen, pg.Vector2(*self.screen.get_size()))
-        self.renderer = Renderer(self.camera)
+        self.renderer = Renderer(self.camera, self.debug)
+        self.debug_renderer = DebugRenderer() if DEBUG_ENABLED else None
 
         self.is_running = True
         self.dt = 1/FPS
@@ -30,6 +34,9 @@ class Game:
 
     def run(self):
         while self.is_running:
+            if self.debug:
+                self.debug.set('fps', self.clock.get_fps())
+            
             events = self._handle_window_events()
             intents = self.input_handler.get_intents(events, self.camera, self.world.drone)
             
@@ -38,6 +45,11 @@ class Game:
             self.camera.update(self.world.drone)
 
             self.renderer.render(self.screen, self.world)
+            
+            if self.debug_renderer:
+                entities = [self.world.drone, self.world.drill] + self.world.enemies + self.world.projectiles
+                self.debug_renderer.render(self.screen, self.debug, self.camera, entities)
+            
             pg.display.flip()
 
             self.dt = self.clock.tick(FPS) / 1000

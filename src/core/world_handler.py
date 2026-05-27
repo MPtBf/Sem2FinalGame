@@ -11,8 +11,9 @@ from .config import *
 
 
 class World:
-    def __init__(self, event_bus: EventBus):
+    def __init__(self, event_bus: EventBus, debug=None):
         self.event_bus = event_bus
+        self.debug = debug
         self.drone = Drone(pg.Vector2(*DRONE_SPAWN_POS), 100)
         self.drone.event_bus = event_bus
         self.drill = Drill(pg.Vector2(*DRILL_SPAWN_POS), 1_000)
@@ -48,6 +49,12 @@ class World:
                 obj.sync_pos_to_rect()
 
         self._manage_entities()
+        
+        if self.debug:
+            self.debug.set('entities', len(dynamic_objects))
+            self.debug.set('enemies', len(self.enemies))
+            self.debug.set('projectiles', len(self.projectiles))
+            self.debug.set('tiles_since_cave', self.map._tiles_mined_since_last_cave)
 
     def get_all_objects(self) -> list[GameObject]:
         return self.enemies + self.projectiles + self.map.get_tiles_list() + [self.drone, self.drill]

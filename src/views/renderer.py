@@ -16,8 +16,9 @@ def temp_image_func(color: tuple):
 
 class Renderer:
     """class to render everything on the screen"""
-    def __init__(self, camera: Camera) -> None:
+    def __init__(self, camera: Camera, debug=None) -> None:
         self.camera = camera
+        self.debug = debug
         # sprites
         self.assets = {
             ObjectType.DRILL: temp_image_func((200,200,100)),
@@ -36,6 +37,9 @@ class Renderer:
         
         # O(1) rendering optimization: get only visible objects from the grid
         visible_objects = world.get_visible_objects(self.camera._rect)
+        
+        if self.debug:
+            self.debug.set('rendered_objects', len(visible_objects))
         
         # applying sorting by z-index
         for object in sorted(visible_objects, key=lambda e: e.z_index):
