@@ -4,56 +4,53 @@ from src.models.drone import Drone
 from src.models.drill import Drill
 from src.models.enemy import Enemy
 from src.models.map import Map
+from src.models.projectile import Projectile
 from src.utils.shortcuts import TC
 from .event_bus import EventBus, EventType
 from .config import *
 
+
 class World:
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
-        self.drone = Drone(
-            pg.Vector2(*DRONE_SPAWN_POS), 100
-        )
-        self.drill = Drill(
-            pg.Vector2(*DRILL_SPAWN_POS), 1_000
-        )
+        self.drone = Drone(pg.Vector2(*DRONE_SPAWN_POS), 100)
+        self.drone.event_bus = event_bus
+        self.drill = Drill(pg.Vector2(*DRILL_SPAWN_POS), 1_000)
         self.enemies = []
         self.projectiles = []
         self.map = Map(self.event_bus)
 
-        # Subscribe to events
         self.event_bus.subscribe(EventType.ENEMY_SPAWN, self._on_enemy_spawn_event)
-        
+        self.event_bus.subscribe(EventType.PROJECTILE_SPAWN, self._on_projectile_spawn)
+
     def _on_enemy_spawn_event(self, positions: list[tuple[int, int]]):
         self.spawn_enemies(positions)
 
-    def update(self, dt, intents):
-        # update all dynamic objects
+    def _on_projectile_spawn(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
+        self.projectiles.append(Projectile(pos, direction, shooter_velocity))
+
+    def update(self, dt, intents: dict):
         dynamic_objects = self.get_dynamic_objects()
-        
+
         for obj in dynamic_objects:
-            # internal logic  (SOLID: delegated to object)
             obj.update_logic(dt, self, intents)
 
             # X axis movement and resolution
             obj.move_x(dt)
             obj.after_move('x', self)
-                
             if self._resolve_collisions(obj, 'x'):
                 obj.sync_pos_to_rect()
                 
             # Y axis movement and resolution
             obj.move_y(dt)
             obj.after_move('y', self)
-                
             if self._resolve_collisions(obj, 'y'):
                 obj.sync_pos_to_rect()
 
         self._manage_entities()
 
-    def get_all_objects(self) -> GameObject:
-        return self.enemies + self.projectiles + self.map.get_tiles_list() + \
-            [self.drone, self.drill]
+    def get_all_objects(self) -> list[GameObject]:
+        return self.enemies + self.projectiles + self.map.get_tiles_list() + [self.drone, self.drill]
 
     def get_dynamic_objects(self) -> list[DynamicObject]:
         return self.enemies + self.projectiles + [self.drone, self.drill]
@@ -65,31 +62,26 @@ class World:
         return static_visible + dynamic_visible
 
     def _resolve_collisions(self, obj, axis):
-        # handle projectiles (they might just die on collision)
         if obj.object_type == ObjectType.PROJECTILE:
-            # O(1) optimization: get only nearby tiles
-            collided_objects = self.map.get_tiles_in_rect(obj.rect)
-            for wall in collided_objects:
-                if wall.ground_material != GroundMaterial.AIR:
-                    # simple projectile logic: destroy on hit
-                    if hasattr(obj, 'die'):
-                        obj.die()
+            # wall collision
+            for wall in self.map.get_tiles_in_rect(obj.rect):
+                if wall.ground_material != GroundMaterial.AIR and obj.rect.colliderect(wall.rect):
+                    obj.die()
+                    return False
+            # enemy collision (pass through drill)
+            for enemy in self.enemies:
+                if obj.rect.colliderect(enemy.rect):
+                    obj.die()
+                    return False
             return False
 
-        # handle collisions for entities
         collided = False
-        if obj.object_type in [ObjectType.DRILL, ObjectType.DRONE, ObjectType.ENEMY]:
-            # O(1) optimization:  get only nearby tiles
-            collided_objects = self.map.get_tiles_in_rect(obj.rect)
-            for wall in collided_objects:
-                # ignore non-collidable
+        if obj.object_type in (ObjectType.DRILL, ObjectType.DRONE, ObjectType.ENEMY):
+            for wall in self.map.get_tiles_in_rect(obj.rect):
                 if wall.ground_material == GroundMaterial.AIR:
                     continue
-                
-                # check collision again previous resolution might have pushed us out
                 if not obj.rect.colliderect(wall.rect):
                     continue
-
                 collided = True
                 if axis == 'x':
                     if obj.velocity.x > 0: # moving right
@@ -102,7 +94,7 @@ class World:
                     elif obj.velocity.y < 0: # moving up
                         obj.rect.top = wall.rect.bottom
             
-            # zero out the velocity
+            # decrease the velocity
             if collided:
                 if axis == 'x':
                     obj.velocity.x *= VELOCITY_LOSS_ON_COLLISION
@@ -110,8 +102,7 @@ class World:
                     obj.velocity.y *= VELOCITY_LOSS_ON_COLLISION
 
         return collided
-                
-        
+
     def spawn_enemies(self, tile_positions: list[tuple[int, int]]):
         for pos in tile_positions:
             world_pos = pg.Vector2(*TC(pos))
@@ -123,5 +114,4 @@ class World:
     def _manage_entities(self):
         # remove dead enemies
         self.enemies = [e for e in self.enemies if e.health > 0]
-        # remove dead projectiles
-        ...
+        self.projectiles = [p for p in self.projectiles if p.alive]

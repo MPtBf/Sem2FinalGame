@@ -13,6 +13,8 @@ class EventType(Enum):
     DRILL_DEATH = auto()
     DRILL_DAMAGE = auto()
 
+    PROJECTILE_SPAWN = auto()
+
 
 class EventBus:
     def __init__(self):
