@@ -44,9 +44,14 @@ class Map:
                     self._tiles[(x,y)] = Tile(
                         pg.Vector2(*TC(x, y)), GroundMaterial.AIR)
                 elif ((x - off_x)**2 + (y - off_y)**2)**0.5 <= (rad + 1):
+                    material = self._get_generated_tile_material((x,y))
                     self._tiles[(x,y)] = Tile(
-                        pg.Vector2(*TC(x, y)), GroundMaterial.STONE)
+                        pg.Vector2(*TC(x, y)), material)
 
+    def _get_generated_tile_material(self, tile_pos):
+        if random.random() > 0.03:
+            return GroundMaterial.STONE
+        return GroundMaterial.COPPER
         
     def get_tiles_list(self):
         tiles_list = list(self._tiles.values())
@@ -88,8 +93,8 @@ class Map:
         # generate neighbors for "unexplored" area tiles
         self._generate_neighbours(tile_pos)
 
-    def set_tile_at(self, tile_pos: tuple[int, int], material: GroundMaterial):
-        """Sets or updates a tile at specific coordinates."""
+    def clear_tile_at(self, tile_pos: tuple[int,int]):
+        material = GroundMaterial.AIR
         existing = self._tiles.get(tile_pos)
         if existing:
             if existing.ground_material == material:
@@ -97,10 +102,18 @@ class Map:
             existing.ground_material = material
         else:
             self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
+        self._generate_neighbours(tile_pos)
 
-        # ensure spawned walls around air
-        if material == GroundMaterial.AIR:
-            self._generate_neighbours(tile_pos)
+    def generate_tile_at(self, tile_pos: tuple[int, int]):
+        """Sets or updates a tile at specific coordinates."""
+        material = self._get_generated_tile_material(tile_pos)
+        existing = self._tiles.get(tile_pos)
+        if existing:
+            if existing.ground_material == material:
+                return
+            existing.ground_material = material
+        else:
+            self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
 
     def _generate_neighbours(self, tile_pos):
         for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -117,6 +130,6 @@ class Map:
 
     def generate_tile(self, tile_pos: tuple[int, int]):
         """some generation logic like different ores and caves"""
-        self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), 
-                                     GroundMaterial.STONE)
+        material = self._get_generated_tile_material(tile_pos)
+        self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
         

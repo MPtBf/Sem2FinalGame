@@ -44,6 +44,7 @@ class ObjectType(Enum):
 class GroundMaterial(Enum):
     AIR = auto()
     STONE = auto()
+    COPPER = auto()
     HARD_STONE = auto()
 
 

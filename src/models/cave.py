@@ -5,7 +5,7 @@ from src.settings.base import GroundMaterial
 from src.settings.balance import (
     THICKNESS_CONTROL_POINTS_NUM_RANGE, CAVE_LENGTH_RANGE, 
     CAVE_THICKNESS_RANGE, CAVE_MAX_ANGLE_CHANGE, ENEMY_SPAWN_PER_CAVE_RANGE,
-    ENEMY_MIN_DISTANCE_FROM_CAVE_START
+    ENEMY_SPAWN_MIN_DISTANCE_FROM_CAVE_START
 )
 
 class CaveGenerator:
@@ -59,7 +59,7 @@ class CaveGenerator:
             # carve tiles around current position
             carved = CaveGenerator._carve_at(map_obj, current_pos, thickness)
             # tiles for enemy spawn ENEMY_MIN_DISTANCE_FROM_CAVE_START far from player
-            if i > ENEMY_MIN_DISTANCE_FROM_CAVE_START:
+            if i > ENEMY_SPAWN_MIN_DISTANCE_FROM_CAVE_START:
                 potential_spawn_tiles.update(carved)
             
             # curving cave
@@ -113,10 +113,10 @@ class CaveGenerator:
                 
                 if dist <= thickness:
                     # inside cave - air
-                    map_obj.set_tile_at(target_pos, GroundMaterial.AIR)
+                    map_obj.clear_tile_at(target_pos)
                     air_tiles.append(target_pos)
                 elif dist <= thickness + 1.2:
                     # cave wall - stone (only if it was unexplored or something else)
                     if not map_obj.is_air(target_pos):
-                        map_obj.set_tile_at(target_pos, GroundMaterial.STONE)
+                        map_obj.generate_tile_at(target_pos)
         return air_tiles

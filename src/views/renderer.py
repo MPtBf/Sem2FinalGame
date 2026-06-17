@@ -36,6 +36,7 @@ class Renderer:
             ObjectType.GROUND: {
                 GroundMaterial.AIR: temp_image_func((50,50,50)),
                 GroundMaterial.STONE: temp_image_func((100,100,100)),
+                GroundMaterial.COPPER: temp_image_func((150,80,50)),
                 GroundMaterial.HARD_STONE: temp_image_func((150,150,150)),
             }
         }
