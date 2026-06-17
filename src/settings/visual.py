@@ -35,3 +35,9 @@ HP_BAR_COLOR_HIGH = (255, 120, 0)  # orange
 HP_BAR_COLOR_LOW = (120, 0, 0)  # dark red
 HP_BAR_FLASH_COLOR = (255, 255, 255)  # white flash on damage
 HP_BAR_FLASH_DURATION = 0.2  # seconds
+
+# --- ui ---
+PLAYER_RESPAWN_TEXT = 'Дрон уничтожен! Возрождение через:'
+PLAYER_RESPAWN_FONT_SIZE = 36
+PLAYER_RESPAWN_FONT_COLOR = (255,255,255)
+UI_FONT_FAMILY = 'Arial'

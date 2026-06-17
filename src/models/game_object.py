@@ -12,6 +12,7 @@ class GameObject:
         self._rect = pg.Rect(self._pos.x, self._pos.y, self._size.x, self._size.y)
         self.object_type = object_type
         self.z_index = Z_INDEX[object_type]
+        self.is_visible = True
     
     @property
     def pos(self):
@@ -93,6 +94,9 @@ class LivingEntity(DynamicObject):
         
         if self.health <= 0:
             self.die()
+
+    def is_alive(self):
+        return self.health > 0
 
     def die(self):
         pass

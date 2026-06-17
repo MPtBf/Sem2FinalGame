@@ -1,19 +1,4 @@
-from enum import Enum, auto
-
-
-class EventType(Enum):
-    ENEMY_SPAWN = auto()
-    ENEMY_DEATH = auto()
-    ENEMY_DAMAGE = auto()
-
-    PLAYER_DEATH = auto()
-    PLAYER_DAMAGE = auto()
-    PLAYER_COLLECT_RESOURCES = auto()
-
-    DRILL_DEATH = auto()
-    DRILL_DAMAGE = auto()
-
-    PROJECTILE_SPAWN = auto()
+from src.settings.base import EventType
 
 
 class EventBus:

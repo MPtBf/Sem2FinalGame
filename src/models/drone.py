@@ -2,7 +2,7 @@ import pygame as pg
 
 from src.models.map import Tile
 from .game_object import LivingEntity, ObjectType
-from src.settings.base import INTENT
+from src.settings.base import Intent
 from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH
 from src.settings.visual import DRONE_SIZE
 from src.core.event_bus import EventType
@@ -15,14 +15,17 @@ class Drone(LivingEntity):
         self.acceleration = pg.Vector2(0, 0)
         self.event_bus = None  # added from WorldHandler separately
 
-        self.move_x_map = {INTENT.MOVE_LEFT: -1, INTENT.MOVE_RIGHT: 1}
-        self.move_y_map = {INTENT.MOVE_UP: -1, INTENT.MOVE_DOWN: 1}
+        self.move_x_map = {Intent.MOVE_LEFT: -1, Intent.MOVE_RIGHT: 1}
+        self.move_y_map = {Intent.MOVE_UP: -1, Intent.MOVE_DOWN: 1}
         self.action_map = {
-            INTENT.SHOOT: self.shoot,
-            INTENT.MINE: self.mine,
+            Intent.SHOOT: self.shoot,
+            Intent.MINE: self.mine,
         }
 
     def update_logic(self, dt, world, intents=None):
+        if not self.is_alive():
+            return
+
         super().update_logic(dt, world, intents)
         if intents is None:
             intents = {}
@@ -65,3 +68,8 @@ class Drone(LivingEntity):
 
     def mine(self, tiles: list[Tile]):
         ...
+
+    def die(self):
+        self.is_visible = False
+        self.velocity *= 0
+        self.event_bus.emit(EventType.PLAYER_DEATH)

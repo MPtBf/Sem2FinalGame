@@ -47,7 +47,7 @@ class GroundMaterial(Enum):
     HARD_STONE = auto()
 
 
-class INTENT(Enum):
+class Intent(Enum):
     MOVE_UP = auto()
     MOVE_DOWN = auto()
     MOVE_LEFT = auto()
@@ -55,17 +55,43 @@ class INTENT(Enum):
     SHOOT = auto()
     MINE = auto()
 
+    PAUSE = auto()
+    RESUME = auto()
+
 
 class ProjectileOwner(Enum):
     PLAYER = auto()
     ENEMY = auto()
 
 
+class EventType(Enum):
+    ENEMY_SPAWN = auto()
+    ENEMY_DEATH = auto()
+    ENEMY_DAMAGE = auto()
+
+    PLAYER_DEATH = auto()
+    PLAYER_DAMAGE = auto()
+    PLAYER_COLLECT_RESOURCES = auto()
+
+    GAME_OVER = auto()
+    DRILL_DAMAGE = auto()
+
+    PROJECTILE_SPAWN = auto()
+
+
+class PlayerState(Enum):
+    ALIVE = auto()
+    RESPAWNING = auto()
+
+
 # --- input mapping ---
 KEY_TO_INTENT = {
-    pg.K_w: INTENT.MOVE_UP,
-    pg.K_s: INTENT.MOVE_DOWN,
-    pg.K_a: INTENT.MOVE_LEFT,
-    pg.K_d: INTENT.MOVE_RIGHT,
-    pg.K_e: INTENT.MINE,
+    pg.K_w: Intent.MOVE_UP,
+    pg.K_s: Intent.MOVE_DOWN,
+    pg.K_a: Intent.MOVE_LEFT,
+    pg.K_d: Intent.MOVE_RIGHT,
+    pg.K_e: Intent.MINE,
+
+    pg.K_p: Intent.PAUSE,
+    pg.K_o: Intent.RESUME,
 }

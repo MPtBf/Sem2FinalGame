@@ -21,7 +21,7 @@ class Camera:
         self.offset.x = target_entity.pos.x + target_entity.size.x / 2 - self.size[0] / 2
         self.offset.y = target_entity.pos.y + target_entity.size.y / 2 - self.size[1] / 2
 
-    def is_object_visible(self, object: GameObject):
+    def is_obj_in_view(self, object: GameObject):
         return self._rect.colliderect(object.rect)
     
     @property

@@ -1,17 +1,17 @@
 # gameplay balance config: health, damage, speed, cooldowns
 
-from .base import TILE_SIZE
+from .base import TILE_SIZE, ObjectType
 
 
 # --- player ---
-DRONE_HEALTH = 100
+DRONE_HEALTH = 10
 DRONE_MAX_SPEED = TILE_SIZE * 15
 DRONE_ACCELERATION = TILE_SIZE * 1.0
 DRONE_DECELERATION = TILE_SIZE * 0.25
 
 
 # --- drill ---
-DRILL_HEALTH = 1000
+DRILL_HEALTH = 100
 DRILL_SPEED = TILE_SIZE * 5
 
 
@@ -31,7 +31,9 @@ ENEMY_FRICTION = 0.1
 
 # --- combat ---
 KNOCKBACK_FORCE = TILE_SIZE * 8
+KNOCKBACKABLE_ENTITIES = [ObjectType.DRILL, ObjectType.ENEMY]
 VELOCITY_LOSS_ON_HIT = 0.2  # keep 20% of velocity when hit
+PLAYER_RESPAWN_TIME = 5 # seconds
 
 
 # --- physics ---

@@ -1,0 +1,82 @@
+
+from math import ceil
+import pygame as pg
+
+from src.models.game_object import LivingEntity
+from src.core.world_handler import WorldHandler
+from src.settings.base import TILE_SIZE, PlayerState
+from src.settings.visual import HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, UI_FONT_FAMILY
+from src.views.camera import Camera
+
+
+
+class Button:
+    def __init__(self, pos, size, text) -> None:
+        self.pos = pos
+        self.size = size
+        self.text = text
+
+    def update(self, ):
+        ...
+
+
+
+
+class UIManager:
+    def __init__(self, screen, camera) -> None:
+        self.screen = screen
+        self.camera = camera
+
+    def update(self):
+        # get mouse pos
+        # check buttons for clicks  & emit
+        ...
+
+
+    def _render_health_bars(self, living_entities: list[LivingEntity]):
+        for entity in living_entities:
+            if not entity.is_visible or not self.camera.is_obj_in_view(entity):
+                continue
+            
+            health_ratio = max(0.0, min(1.0, entity.health / entity.max_health))
+            bar_width = entity.max_health**0.5 * HP_BAR_SCALE_FACTOR * TILE_SIZE
+            current_width = bar_width * health_ratio
+            
+            bar_x = entity.pos.x + entity.size.x / 2 - bar_width / 2
+            bar_y = entity.pos.y - HP_BAR_OFFSET_Y
+            
+            screen_pos = self.camera.apply(pg.Vector2(bar_x, bar_y))
+            
+            # black background
+            pg.draw.rect(self.screen, HP_BAR_BACKGROUND_COLOR, (screen_pos.x, screen_pos.y, bar_width, HP_BAR_HEIGHT))
+            
+            # determine bar color
+            if entity._damage_flash_timer > 0:
+                # white flash on damage
+                bar_color = HP_BAR_FLASH_COLOR
+            else:
+                # gradient from orange to dark red
+                bar_color = (
+                    int(HP_BAR_COLOR_HIGH[0] * health_ratio + HP_BAR_COLOR_LOW[0] * (1 - health_ratio)),
+                    int(HP_BAR_COLOR_HIGH[1] * health_ratio + HP_BAR_COLOR_LOW[1] * (1 - health_ratio)),
+                    int(HP_BAR_COLOR_HIGH[2] * health_ratio + HP_BAR_COLOR_LOW[2] * (1 - health_ratio))
+                )
+            
+            # fill health bar
+            pg.draw.rect(self.screen, bar_color, (screen_pos.x, screen_pos.y, current_width, HP_BAR_HEIGHT))
+
+    def render(self, camera, world: WorldHandler, living_entities: list[LivingEntity]):
+        self._render_health_bars(living_entities)
+        self._render_player_respawn_text(world)
+
+    def _render_player_respawn_text(self, world: WorldHandler):
+        if world.player_state == PlayerState.RESPAWNING:
+            unit_name = 'сек'
+            respawns_in_int = ceil(world.player_respawns_in)
+            text_str = f'{PLAYER_RESPAWN_TEXT} {respawns_in_int} {unit_name}'
+
+            font = pg.font.SysFont(UI_FONT_FAMILY, PLAYER_RESPAWN_FONT_SIZE)
+            text_surface = font.render(text_str, True, PLAYER_RESPAWN_FONT_COLOR)
+            text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+
+            self.screen.blit(text_surface, text_rect)

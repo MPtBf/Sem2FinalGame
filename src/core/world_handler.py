@@ -6,31 +6,49 @@ from src.models.enemy import Enemy
 from src.models.map import Map
 from src.models.projectile import Projectile
 from src.utils.shortcuts import TC
+from src.views.camera import Camera
 from .event_bus import EventBus, EventType
-from src.settings.base import ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
-from src.settings.balance import PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
+from src.settings.base import PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
+from src.settings.balance import KNOCKBACKABLE_ENTITIES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
 from src.settings.visual import DRONE_SPAWN_POS, DRILL_SPAWN_POS, ENEMY_SIZE
 
 
-class World:
+class WorldHandler:
     def __init__(self, event_bus: EventBus, debug=None):
         self.event_bus = event_bus
         self.debug = debug
-        self.drone = Drone(pg.Vector2(*DRONE_SPAWN_POS))
-        self.drone.event_bus = event_bus
-        self.drill = Drill(pg.Vector2(*DRILL_SPAWN_POS))
+        self._setup_drone(pg.Vector2(*DRONE_SPAWN_POS))
+        self.drill = Drill(pg.Vector2(*DRILL_SPAWN_POS), event_bus)
         self.enemies: list[Enemy] = []
         self.projectiles = []
         self.map = Map(self.event_bus)
 
+        self.player_state = PlayerState.ALIVE
+        self.player_respawns_in = PLAYER_RESPAWN_TIME
+
         self.event_bus.subscribe(EventType.ENEMY_SPAWN, self._on_enemy_spawn_event)
         self.event_bus.subscribe(EventType.PROJECTILE_SPAWN, self._on_projectile_spawn)
+        self.event_bus.subscribe(EventType.PLAYER_DEATH, self._on_player_death)
+
+    def _setup_drone(self, pos: pg.Vector2):
+        self.drone = Drone(pos)
+        self.drone.event_bus = self.event_bus
 
     def _on_enemy_spawn_event(self, positions: list[tuple[int, int]]):
         self.spawn_enemies(positions)
 
     def _on_projectile_spawn(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
         self.projectiles.append(Projectile(pos, direction, owner_type=ProjectileOwner.PLAYER, shooter_velocity=shooter_velocity))
+
+    def _on_player_death(self):
+        self.player_state = PlayerState.RESPAWNING
+
+    def _on_player_respawn(self):
+        # spawn new drone in the center of a drill
+        respawn_pos = self.drill.pos + self.drill.size / 2 - self.drone.size / 2
+        self._setup_drone(pg.Vector2(respawn_pos))
+        self.player_respawns_in = PLAYER_RESPAWN_TIME
+        self.player_state = PlayerState.ALIVE
 
     def update(self, dt, intents: dict):
         dynamic_objects = self.get_dynamic_objects()
@@ -56,7 +74,7 @@ class World:
 
         self._handle_projectiles()
         self._handle_combat()
-        self._manage_entities()
+        self._manage_entities(dt)
         
         if self.debug:
             self.debug.set('entities', len(dynamic_objects))
@@ -70,10 +88,10 @@ class World:
     def get_dynamic_objects(self) -> list[DynamicObject]:
         return self.enemies + self.projectiles + [self.drone, self.drill]
 
-    def get_visible_objects(self, view_rect: pg.Rect) -> list[GameObject]:
+    def get_visible_objects(self, camera: Camera) -> list[GameObject]:
         # only objects in view_rect, for efficient rendering
-        static_visible = self.map.get_tiles_in_rect(view_rect)
-        dynamic_visible = [obj for obj in self.get_dynamic_objects() if view_rect.colliderect(obj.rect)]
+        static_visible = self.map.get_tiles_in_rect(camera._rect)
+        dynamic_visible = [obj for obj in self.get_dynamic_objects() if camera.is_obj_in_view(obj)]
         return static_visible + dynamic_visible
 
     def _resolve_collisions(self, obj, axis):
@@ -114,10 +132,16 @@ class World:
             enemy = Enemy(world_pos + center_offset)
             self.enemies.append(enemy)
 
-    def _manage_entities(self):
+    def _manage_entities(self, dt):
         # remove dead enemies
         self.enemies = [e for e in self.enemies if e.health > 0]
         self.projectiles = [p for p in self.projectiles if p.alive]
+
+        # player respawn countdown
+        if self.player_state == PlayerState.RESPAWNING:
+            self.player_respawns_in -= dt
+            if self.player_respawns_in <= 0:
+                self._on_player_respawn()
 
     def _handle_projectiles(self):
         # projectile-wall collisions (simple death check)
@@ -145,10 +169,13 @@ class World:
                         break
             
             # enemy projectiles damage player entities
-            elif projectile.owner_type == ProjectileOwner.ENEMY:
-                for target in [self.drone, self.drill]:
+            if projectile.owner_type == ProjectileOwner.ENEMY    or projectile.owner_type == ProjectileOwner.PLAYER:
+                for target in [self.drill, ]: # self.drone
                     if projectile.rect.colliderect(target.rect):
-                        knockback_dir = projectile.velocity if projectile.velocity.length() > 0 else None
+                        knockback_dir = None
+                        if projectile.velocity.length() > 0 and target in KNOCKBACKABLE_ENTITIES:
+                            knockback_dir = projectile.velocity
+
                         target.take_damage(PROJECTILE_DAMAGE, knockback_dir)
                         projectile.die()
                         break
@@ -163,6 +190,8 @@ class World:
                     enemy.try_damage(self.drone, knockback_dir)
                 else:
                     enemy.try_damage(self.drone)
+
+
 
     def get_living_entities(self) -> list[LivingEntity]:
         return [self.drone, self.drill] + self.enemies
