@@ -5,7 +5,7 @@ from src.models.drone import Drone
 from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
 from src.settings.base import GroundMaterial, EventType
-from src.settings.balance import DRILL_SPEED, DRILL_HEALTH
+from src.settings.balance import DRILL_ACCELERATION, DRILL_DECELERATION, DRILL_MAX_SPEED, DRILL_HEALTH, DRONE_ACCELERATION
 from src.settings.visual import DRILL_SIZE
 
 class Drill(LivingEntity):
@@ -13,14 +13,29 @@ class Drill(LivingEntity):
         super().__init__(pos, pg.Vector2(*DRILL_SIZE), ObjectType.DRILL, DRILL_HEALTH)
         self.storage = {}
         self.event_bus = event_bus
+        self.acceleration = pg.Vector2(0, 0)
 
     def update_logic(self, dt, world, intents=None):
         super().update_logic(dt, world, intents)
-        
+
+        # determine desired acceleration
         if self._is_saddled_by_drone(world.drone):
-            self.velocity.y = -DRILL_SPEED
+            self.acceleration = pg.Vector2(self.acceleration.x, -DRILL_ACCELERATION)
         else:
-            self.velocity.y = 0
+            if self.velocity.length() > 0:
+                self.acceleration = -self.velocity.normalize() * DRILL_DECELERATION
+            else:
+                if self.velocity.length() - self.acceleration.length() > 0:
+                    self.acceleration = -self.velocity.normalize() * DRILL_DECELERATION
+                else:
+                    self.acceleration *= 0
+                    self.velocity *= 0
+
+        # update velocity with acceleration
+        self.velocity += self.acceleration
+        if self.velocity.length() > DRILL_MAX_SPEED:
+            self.velocity.normalize_ip()
+            self.velocity *= DRILL_MAX_SPEED
 
     def after_move(self, axis, world):
         # Drill mines after moving along each axis (made for future: diagonal movement)

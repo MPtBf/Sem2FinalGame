@@ -9,7 +9,7 @@ from src.utils.shortcuts import TC
 from src.views.camera import Camera
 from .event_bus import EventBus, EventType
 from src.settings.base import PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
-from src.settings.balance import KNOCKBACKABLE_ENTITIES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
+from src.settings.balance import PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
 from src.settings.visual import DRONE_SPAWN_POS, DRILL_SPAWN_POS, ENEMY_SIZE
 
 
@@ -161,7 +161,7 @@ class WorldHandler:
             
             # player projectiles damage enemies
             if projectile.owner_type == ProjectileOwner.PLAYER:
-                for enemy in self.enemies:
+                for enemy in self.enemies + [self.drill]:
                     if projectile.rect.colliderect(enemy.rect):
                         knockback_dir = projectile.velocity if projectile.velocity.length() > 0 else None
                         enemy.take_damage(PROJECTILE_DAMAGE, knockback_dir)
@@ -169,29 +169,29 @@ class WorldHandler:
                         break
             
             # enemy projectiles damage player entities
-            if projectile.owner_type == ProjectileOwner.ENEMY    or projectile.owner_type == ProjectileOwner.PLAYER:
-                for target in [self.drill, ]: # self.drone
+            elif projectile.owner_type == ProjectileOwner.ENEMY:
+                for target in [self.drill, self.drone]:
                     if projectile.rect.colliderect(target.rect):
-                        knockback_dir = None
-                        if projectile.velocity.length() > 0 and target in KNOCKBACKABLE_ENTITIES:
-                            knockback_dir = projectile.velocity
-
+                        knockback_dir = projectile.velocity
+                        if knockback_dir.length() == 0:
+                            knockback_dir = None
                         target.take_damage(PROJECTILE_DAMAGE, knockback_dir)
                         projectile.die()
                         break
         
-        # drone-enemy contact damage
+        # drone/drill-enemy contact damage
         for enemy in self.enemies:
-            if self.drone.rect.colliderect(enemy.rect):
-                drone_center = self.drone.pos + self.drone.size / 2
-                enemy_center = enemy.pos + enemy.size / 2
-                knockback_dir = (drone_center - enemy_center)
-                if knockback_dir.length() > 0:
-                    enemy.try_damage(self.drone, knockback_dir)
-                else:
-                    enemy.try_damage(self.drone)
+            for target in [self.drone, self.drill]:
+                if target.rect.colliderect(enemy.rect):
+                    drone_center = target.pos + target.size / 2
+                    enemy_center = enemy.pos + enemy.size / 2
+                    knockback_dir = (drone_center - enemy_center)
+                    if knockback_dir.length() == 0:
+                        knockback_dir = None
 
-
+                    is_success = enemy.try_damage(target, knockback_dir)
+                    if is_success:
+                        enemy._apply_knockback(-knockback_dir)
 
     def get_living_entities(self) -> list[LivingEntity]:
         return [self.drone, self.drill] + self.enemies

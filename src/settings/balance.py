@@ -4,15 +4,17 @@ from .base import TILE_SIZE, ObjectType
 
 
 # --- player ---
-DRONE_HEALTH = 10
+DRONE_HEALTH = 30
 DRONE_MAX_SPEED = TILE_SIZE * 15
 DRONE_ACCELERATION = TILE_SIZE * 1.0
 DRONE_DECELERATION = TILE_SIZE * 0.25
 
 
 # --- drill ---
-DRILL_HEALTH = 100
-DRILL_SPEED = TILE_SIZE * 5
+DRILL_HEALTH = 1000
+DRILL_MAX_SPEED = TILE_SIZE * 5
+DRILL_ACCELERATION = TILE_SIZE * 0.6
+DRILL_DECELERATION = TILE_SIZE * 0.02
 
 
 # --- projectile ---
@@ -31,7 +33,11 @@ ENEMY_FRICTION = 0.1
 
 # --- combat ---
 KNOCKBACK_FORCE = TILE_SIZE * 8
-KNOCKBACKABLE_ENTITIES = [ObjectType.DRILL, ObjectType.ENEMY]
+ENTITY_WEIGHT_MAP = {
+    ObjectType.DRILL: 5.0,
+    ObjectType.DRONE: 0.6,
+    ObjectType.ENEMY: 1.0,
+}
 VELOCITY_LOSS_ON_HIT = 0.2  # keep 20% of velocity when hit
 PLAYER_RESPAWN_TIME = 5 # seconds
 

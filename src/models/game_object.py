@@ -1,7 +1,7 @@
 import pygame as pg
 from enum import Enum, auto
 from src.settings.base import ObjectType
-from src.settings.balance import KNOCKBACK_FORCE, VELOCITY_LOSS_ON_HIT
+from src.settings.balance import ENTITY_WEIGHT_MAP, KNOCKBACK_FORCE, VELOCITY_LOSS_ON_HIT
 from src.settings.visual import Z_INDEX, HP_BAR_FLASH_DURATION
 
 
@@ -87,13 +87,15 @@ class LivingEntity(DynamicObject):
     def take_damage(self, amount, knockback_direction: pg.Vector2 = None):
         self.health -= amount
         self._damage_flash_timer = HP_BAR_FLASH_DURATION
-        
-        if knockback_direction:
-            self.velocity *= VELOCITY_LOSS_ON_HIT
-            self.velocity += knockback_direction.normalize() * KNOCKBACK_FORCE
-        
+        self._apply_knockback(knockback_direction)
         if self.health <= 0:
             self.die()
+
+    def _apply_knockback(self, knockback_direction):
+        if knockback_direction is not None and knockback_direction.length() > 0:
+            self.velocity *= VELOCITY_LOSS_ON_HIT
+            kb_mult = KNOCKBACK_FORCE / ENTITY_WEIGHT_MAP[self.object_type]  # more weight -> less knockback
+            self.velocity += knockback_direction.normalize() * kb_mult
 
     def is_alive(self):
         return self.health > 0
