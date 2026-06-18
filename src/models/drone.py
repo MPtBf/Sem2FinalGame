@@ -2,18 +2,19 @@ import pygame as pg
 
 from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
-from src.settings.base import TILE_SIZE, Intent, MineIntent, ShootIntent
+from src.settings.base import MATERIAL_TO_ITEM_MAP, TILE_SIZE, Intent, MineIntent, ShootIntent
 from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH, MINE_REACH_DIST
 from src.settings.visual import DRONE_SIZE
 from src.core.event_bus import EventType
 
 
 class Drone(LivingEntity):
-    def __init__(self, pos: pg.Vector2):
+    def __init__(self, pos: pg.Vector2, debug):
         super().__init__(pos, pg.Vector2(*DRONE_SIZE), ObjectType.DRONE, DRONE_HEALTH)
-        self.inventory = {}
+        self.inventory = {item: 0 for material, item in MATERIAL_TO_ITEM_MAP.items()}
         self.acceleration = pg.Vector2(0, 0)
         self.event_bus = None  # added from WorldHandler separately
+        self.debug = debug
 
         self.move_x_map = {Intent.MOVE_LEFT: -1, Intent.MOVE_RIGHT: 1}
         self.move_y_map = {Intent.MOVE_UP: -1, Intent.MOVE_DOWN: 1}
@@ -72,7 +73,8 @@ class Drone(LivingEntity):
         drone_center_pos = self.pos + self.size / 2
         direction.scale_to_length(MINE_REACH_DIST)
         mine_world_pos = drone_center_pos + direction
-        map.mine(mine_world_pos // TILE_SIZE, direction)
+        map.mine(mine_world_pos // TILE_SIZE, direction, drone=self)
+        self.debug.set('inventiry', self.inventory)
 
     def die(self):
         self.is_visible = False

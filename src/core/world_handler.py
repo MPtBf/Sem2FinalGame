@@ -31,7 +31,7 @@ class WorldHandler:
         self.event_bus.subscribe(EventType.PLAYER_DEATH, self._on_player_death)
 
     def _setup_drone(self, pos: pg.Vector2):
-        self.drone = Drone(pos)
+        self.drone = Drone(pos, self.debug)
         self.drone.event_bus = self.event_bus
 
     def _on_enemy_spawn_event(self, positions: list[tuple[int, int]]):

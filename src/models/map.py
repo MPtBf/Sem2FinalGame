@@ -3,7 +3,7 @@
 from enum import Enum, auto
 import random
 from src.settings.base import (
-    SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, GroundMaterial
+    MATERIAL_TO_ITEM_MAP, SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, GroundMaterial
 )
 from src.settings.balance import CAVE_SPAWN_CHANCE_BASE, CAVE_MIN_TILES_BETWEEN
 from src.core.event_bus import EventBus, EventType
@@ -79,7 +79,7 @@ class Map:
                     tiles.append(tile)
         return tiles
 
-    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2 = pg.Vector2(0, 0)):
+    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2 = pg.Vector2(0, 0), drone=None):
         tile_pos = (*tile_pos_vec,)
 
         # if trying to mine unexplored area, explore first
@@ -91,6 +91,8 @@ class Map:
         # change material to air if not already air
         if tile.ground_material == GroundMaterial.AIR:
             return
+        if drone is not None:
+            self._handle_item_pickup(drone, tile.ground_material)
         tile.destroy()
 
         self._tiles_mined_since_last_cave += 1
@@ -106,6 +108,12 @@ class Map:
 
         # generate neighbors for "unexplored" area tiles
         self._generate_neighbours(tile_pos)
+
+    def _handle_item_pickup(self, drone, material: GroundMaterial):
+        if material not in MATERIAL_TO_ITEM_MAP.keys():
+            return
+        item_type = MATERIAL_TO_ITEM_MAP[material]
+        drone.inventory[item_type] += 1
 
     def clear_tile_at(self, tile_pos: tuple[int,int]):
         material = GroundMaterial.AIR

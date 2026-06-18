@@ -96,6 +96,17 @@ class PlayerState(Enum):
     RESPAWNING = auto()
 
 
+class ItemType(Enum):
+    COPPER = auto()
+    BULLET = auto()
+    PATCH = auto()
+
+
+MATERIAL_TO_ITEM_MAP = {
+    GroundMaterial.COPPER: ItemType.COPPER,
+    # other ores
+}
+
 # --- input mapping ---
 KEY_TO_INTENT = {
     pg.K_w: Intent.MOVE_UP,
