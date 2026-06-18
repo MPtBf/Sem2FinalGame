@@ -56,6 +56,7 @@ class Intent(Enum):
     MOVE_RIGHT = auto()
     SHOOT = auto()
     MINE = auto()
+    HEAL_DRILL = auto()
 
     PAUSE = auto()
     RESUME = auto()
@@ -87,6 +88,7 @@ class EventType(Enum):
 
     GAME_OVER = auto()
     DRILL_DAMAGE = auto()
+    HEAL_DRILL = auto()
 
     PLAYER_SHOOT = auto()
 
@@ -114,6 +116,7 @@ KEY_TO_INTENT = {
     pg.K_a: Intent.MOVE_LEFT,
     pg.K_d: Intent.MOVE_RIGHT,
     pg.K_SPACE: Intent.MINE,
+    pg.K_e: Intent.HEAL_DRILL,
 
     pg.K_p: Intent.PAUSE,
     pg.K_o: Intent.RESUME,

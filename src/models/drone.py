@@ -15,12 +15,15 @@ class Drone(LivingEntity):
         self.acceleration = pg.Vector2(0, 0)
         self.event_bus = None  # added from WorldHandler separately
         self.debug = debug
+        
+        self.is_holding_heal = False
 
         self.move_x_map = {Intent.MOVE_LEFT: -1, Intent.MOVE_RIGHT: 1}
         self.move_y_map = {Intent.MOVE_UP: -1, Intent.MOVE_DOWN: 1}
         self.action_map = {
             Intent.SHOOT: self.shoot,
             Intent.MINE: self.mine,
+            Intent.HEAL_DRILL: self.heal_drill,
         }
 
     def update_logic(self, dt, world, intents=None):
@@ -63,6 +66,9 @@ class Drone(LivingEntity):
             if intent in self.action_map:
                 self.action_map[intent](payload, world.map)
 
+        if Intent.HEAL_DRILL not in intents.keys():
+            self.is_holding_heal = False
+
     def shoot(self, payload: ShootIntent, *args):
         spawn_pos = self.pos + self.size / 2
         self.event_bus.emit(EventType.PLAYER_SHOOT, pos=spawn_pos, 
@@ -80,3 +86,9 @@ class Drone(LivingEntity):
         self.is_visible = False
         self.velocity *= 0
         self.event_bus.emit(EventType.PLAYER_DEATH)
+
+    def heal_drill(self, *args):
+        if self.is_holding_heal:
+            return
+        self.event_bus.emit(EventType.HEAL_DRILL)
+        self.is_holding_heal = True

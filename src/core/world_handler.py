@@ -9,7 +9,7 @@ from src.utils.shortcuts import TC
 from src.views.camera import Camera
 from .event_bus import EventBus, EventType
 from src.settings.base import ItemType, PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
-from src.settings.balance import INITIALLY_ALLOCATED_RESOURCES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
+from src.settings.balance import BULLETS_PER_COPPER, DRILL_HP_PER_PATCH, DRILL_HEALTH, INITIALLY_ALLOCATED_RESOURCES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
 from src.settings.visual import DRONE_SPAWN_POS, DRILL_SPAWN_POS, ENEMY_SIZE
 
 
@@ -29,6 +29,7 @@ class WorldHandler:
         self.event_bus.subscribe(EventType.ENEMY_SPAWN, self._on_enemy_spawn_event)
         self.event_bus.subscribe(EventType.PLAYER_SHOOT, self._on_player_shoot)
         self.event_bus.subscribe(EventType.PLAYER_DEATH, self._on_player_death)
+        self.event_bus.subscribe(EventType.HEAL_DRILL, self._on_player_heal_drill)
 
     def _setup_drone(self, pos: pg.Vector2):
         self.drone = Drone(pos, self.debug)
@@ -43,8 +44,25 @@ class WorldHandler:
         # consume bullet (copper for now)
         if self.drone.inventory[ItemType.COPPER] <= 0:
             return False
+        self.drone.inventory[ItemType.COPPER] -= 1 / BULLETS_PER_COPPER
+        self.projectiles.append(
+            Projectile(pos, direction, owner_type=ProjectileOwner.PLAYER, 
+            shooter_velocity=shooter_velocity)
+        )
+        return True
+
+    def _on_player_heal_drill(self):
+        if self.drone.inventory[ItemType.COPPER] <= 0:
+            return False
+        if not self.drill.rect.colliderect(self.drone.rect):
+            return False
+
+        amount = DRILL_HP_PER_PATCH
+        if self.drill.health >= DRILL_HEALTH:
+            return False
+
         self.drone.inventory[ItemType.COPPER] -= 1
-        self.projectiles.append(Projectile(pos, direction, owner_type=ProjectileOwner.PLAYER, shooter_velocity=shooter_velocity))
+        self.drill.heal(amount)
         return True
 
     def _on_player_death(self):

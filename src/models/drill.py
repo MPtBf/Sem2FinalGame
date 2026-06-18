@@ -50,6 +50,8 @@ class Drill(LivingEntity):
         for wall in collided_with_tiles:
             map_obj.mine(wall.tile_pos, self.velocity)
 
+    def heal(self, abount: int):
+        self.health += abount
     
     def die(self):
         self.is_visible = False
