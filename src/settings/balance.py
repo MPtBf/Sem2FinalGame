@@ -16,8 +16,8 @@ BULLETS_PER_COPPER = 5
 
 INITIALLY_ALLOCATED_RESOURCES = {
     ItemType.COPPER: 10,
-    ItemType.BULLET: 0,
-    ItemType.PATCH: 0,
+    # ItemType.BULLET: 0,
+    # ItemType.PATCH: 0,
 }
 
 

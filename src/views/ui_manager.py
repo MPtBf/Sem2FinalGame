@@ -5,8 +5,8 @@ import pygame as pg
 from src.settings.balance import MINE_REACH_DIST
 from src.models.game_object import LivingEntity
 from src.core.world_handler import WorldHandler
-from src.settings.base import TILE_SIZE, PlayerState
-from src.settings.visual import HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, UI_FONT_FAMILY
+from src.settings.base import KEY_TO_INTENT, TILE_SIZE, PlayerState
+from src.settings.visual import CONTROLS_OVERLAY_FONT_SIZE, CONTROLS_TEXT, OVERLAY_BOTTOM_MARGIN, OVERLAY_RIGHT_MARGIN, OVERLAY_BOTTOM_MARGIN, HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, INTENT_TO_TEXT, OVERLAY_FONT_COLOR, INV_OVERLAY_FONT_SIZE, INVENTORY_TEXT, ITEM_TO_TEXT, OVERLAY_LEFT_MARGIN, OVERLAY_LINES_MARGIN, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, SECONDS_TEXT, UI_FONT_FAMILY
 from src.views.camera import Camera
 from src.utils.misc import calc_drone_mine_pos
 
@@ -22,12 +22,12 @@ class Button:
         ...
 
 
-
-
 class UIManager:
     def __init__(self, screen, camera) -> None:
         self.screen = screen
         self.camera = camera
+        self.inv_font = pg.font.SysFont(UI_FONT_FAMILY, INV_OVERLAY_FONT_SIZE)
+        self.controls_font = pg.font.SysFont(UI_FONT_FAMILY, CONTROLS_OVERLAY_FONT_SIZE)
 
     def update(self):
         # get mouse pos
@@ -73,13 +73,43 @@ class UIManager:
             pg.draw.rect(self.screen, bar_color, (screen_pos.x, screen_pos.y, current_width, HP_BAR_HEIGHT))
 
     def render(self, camera, world: WorldHandler, living_entities: list[LivingEntity]):
+        # in-world UI
         self._render_health_bars(living_entities)
         self._render_player_mine_cursor(world, camera)
+        # interface UI
         self._render_player_respawn_text(world)
+        self._render_player_inventory(world)
+        self._render_hotkeys(world)
+
+    def _render_hotkeys(self, world: WorldHandler):
+        texts = []
+        for key, intent in KEY_TO_INTENT.items():
+            text = INTENT_TO_TEXT[intent]
+            key_name = pg.key.name(key).upper()
+            texts.append(f'{text}: {key_name}')
+        texts.append(CONTROLS_TEXT)
+
+        for i, text in enumerate(texts):
+            text_surface = self.controls_font.render(text, True, OVERLAY_FONT_COLOR)
+            # bottom right
+            text_rect = text_surface.get_rect(bottomright=(self.screen.get_width() - OVERLAY_RIGHT_MARGIN, self.screen.get_height() - OVERLAY_BOTTOM_MARGIN - (OVERLAY_LINES_MARGIN + CONTROLS_OVERLAY_FONT_SIZE) * i))
+            self.screen.blit(text_surface, text_rect)
+
+    def _render_player_inventory(self, world: WorldHandler):
+        texts = []
+        for item_type, count in world.drone.inventory.items():
+            texts.append(f'{ITEM_TO_TEXT[item_type]}: {round(count,1)}')
+        texts.append(INVENTORY_TEXT)
+
+        for i, text in enumerate(texts):
+            text_surface = self.inv_font.render(text, True, OVERLAY_FONT_COLOR)
+            # bottom left
+            text_rect = text_surface.get_rect(topleft=(OVERLAY_LEFT_MARGIN, self.screen.get_height() - OVERLAY_BOTTOM_MARGIN - (OVERLAY_LINES_MARGIN + INV_OVERLAY_FONT_SIZE) * i))
+            self.screen.blit(text_surface, text_rect)
 
     def _render_player_respawn_text(self, world: WorldHandler):
         if world.player_state == PlayerState.RESPAWNING:
-            unit_name = 'сек'
+            unit_name = SECONDS_TEXT
             respawns_in_int = ceil(world.player_respawns_in)
             text_str = f'{PLAYER_RESPAWN_TEXT} {respawns_in_int} {unit_name}'
 

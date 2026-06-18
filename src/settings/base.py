@@ -59,7 +59,6 @@ class Intent(Enum):
     HEAL_DRILL = auto()
 
     PAUSE = auto()
-    RESUME = auto()
 
 
 
@@ -100,8 +99,8 @@ class PlayerState(Enum):
 
 class ItemType(Enum):
     COPPER = auto()
-    BULLET = auto()
-    PATCH = auto()
+    # BULLET = auto()
+    # PATCH = auto()
 
 
 MATERIAL_TO_ITEM_MAP = {
@@ -119,5 +118,4 @@ KEY_TO_INTENT = {
     pg.K_e: Intent.HEAL_DRILL,
 
     pg.K_p: Intent.PAUSE,
-    pg.K_o: Intent.RESUME,
 }

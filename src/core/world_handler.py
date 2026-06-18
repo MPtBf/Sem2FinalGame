@@ -42,7 +42,7 @@ class WorldHandler:
 
     def _on_player_shoot(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
         # consume bullet (copper for now)
-        if self.drone.inventory[ItemType.COPPER] <= 0:
+        if self.drone.inventory[ItemType.COPPER] - 1 / BULLETS_PER_COPPER <= 0:
             return False
         self.drone.inventory[ItemType.COPPER] -= 1 / BULLETS_PER_COPPER
         self.projectiles.append(
@@ -52,7 +52,7 @@ class WorldHandler:
         return True
 
     def _on_player_heal_drill(self):
-        if self.drone.inventory[ItemType.COPPER] <= 0:
+        if self.drone.inventory[ItemType.COPPER] - 1 <= 0:
             return False
         if not self.drill.rect.colliderect(self.drone.rect):
             return False
@@ -186,7 +186,7 @@ class WorldHandler:
             
             # player projectiles damage enemies
             if projectile.owner_type == ProjectileOwner.PLAYER:
-                for enemy in self.enemies + [self.drill]:
+                for enemy in self.enemies:
                     if projectile.rect.colliderect(enemy.rect):
                         knockback_dir = projectile.velocity if projectile.velocity.length() > 0 else None
                         enemy.take_damage(PROJECTILE_DAMAGE, knockback_dir)
