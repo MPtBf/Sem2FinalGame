@@ -20,16 +20,33 @@ class Enemy(LivingEntity):
         if self._damage_cooldown > 0:
             self._damage_cooldown -= dt
 
-        # movement towards player if within vision radius
-        vec_to_player = world.drone.pos + world.drone.size/2 - self.pos - self.size/2
-        distance = vec_to_player.length()
-        if 0 < distance <= ENEMY_VISION_RADIUS and world.player_state == PlayerState.ALIVE:
-            # calculatng acceleation
-            if vec_to_player.length() > 0:
-                direction = vec_to_player.normalize()
-                self.acceleration = direction * ENEMY_ACCELERATION
-        # calculatng deceleration
+        # movement towards nearest of drone (if player alive) or drill
+        vec_to_drone = world.drone.pos + world.drone.size/2 - self.pos - self.size/2
+        vec_to_drill = world.drill.pos + world.drill.size/2 - self.pos - self.size/2
+        dist_to_drone = vec_to_drone.length()
+        dist_to_drill = vec_to_drill.length()
+
+        # gather candidate targets (distance, vector) where distance > 0
+        candidates = []
+        if world.player_state == PlayerState.ALIVE:
+            candidates.append((dist_to_drone, vec_to_drone))
+        candidates.append((dist_to_drill, vec_to_drill))
+
+        # choose nearest candidate if exist
+        if candidates:
+            target_dist, target_vec = min(candidates, key=lambda x: x[0])
         else:
+            target_dist = float('inf')
+            target_vec = pg.Vector2(0, 0)
+
+        # if a valid target is within vision radius, accelerate towards it
+        if 0 < target_dist <= ENEMY_VISION_RADIUS:
+            # calculate acceleration
+            if target_vec.length() > 0:
+                direction = target_vec.normalize()
+                self.acceleration = direction * ENEMY_ACCELERATION
+        else:
+            # calculate deceleration
             if self.velocity.length() - self.acceleration.length() > 0:
                 self.acceleration = -self.velocity.normalize() * ENEMY_DECELERATION
             else:

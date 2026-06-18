@@ -1,9 +1,9 @@
 import pygame as pg
 
-from src.models.map import Tile
+from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
-from src.settings.base import Intent
-from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH
+from src.settings.base import TILE_SIZE, Intent, MineIntent, ShootIntent
+from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH, MINE_REACH_DIST
 from src.settings.visual import DRONE_SIZE
 from src.core.event_bus import EventType
 
@@ -29,9 +29,9 @@ class Drone(LivingEntity):
         super().update_logic(dt, world, intents)
         if intents is None:
             intents = {}
-        self.handle_intents(intents, dt)
+        self.handle_intents(intents, world)
 
-    def handle_intents(self, intents: dict, dt):
+    def handle_intents(self, intents: dict, world):
         # getting desired acceleration frm intents
         desired_acc = pg.Vector2(0, 0)
         desired_acc.x = sum(self.move_x_map.get(intent, 0) for intent in intents)
@@ -58,16 +58,21 @@ class Drone(LivingEntity):
             self.velocity *= DRONE_MAX_SPEED
 
         # other intents like shoot and mine
-        for intent, data in intents.items():
+        for intent, payload in intents.items():
             if intent in self.action_map:
-                self.action_map[intent](data)
+                self.action_map[intent](payload, world.map)
 
-    def shoot(self, direction: pg.Vector2):
+    def shoot(self, payload: ShootIntent, *args):
         spawn_pos = self.pos + self.size / 2
-        self.event_bus.emit(EventType.PROJECTILE_SPAWN, pos=spawn_pos, direction=direction, shooter_velocity=pg.Vector2(self.velocity))
+        self.event_bus.emit(EventType.PROJECTILE_SPAWN, pos=spawn_pos, 
+            direction=payload.direction, shooter_velocity=pg.Vector2(self.velocity))
 
-    def mine(self, tiles: list[Tile]):
-        ...
+    def mine(self, payload: MineIntent, map: Map = None):
+        direction = payload.mouse_pos - (self.pos + self.size / 2)
+        drone_center_pos = self.pos + self.size / 2
+        direction.scale_to_length(MINE_REACH_DIST)
+        mine_world_pos = drone_center_pos + direction
+        map.mine(mine_world_pos // TILE_SIZE, direction)
 
     def die(self):
         self.is_visible = False

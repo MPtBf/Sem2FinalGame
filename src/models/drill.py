@@ -22,14 +22,13 @@ class Drill(LivingEntity):
         if self._is_saddled_by_drone(world.drone):
             self.acceleration = pg.Vector2(self.acceleration.x, -DRILL_ACCELERATION)
         else:
-            if self.velocity.length() > 0:
-                self.acceleration = -self.velocity.normalize() * DRILL_DECELERATION
+            # apply deceleration
+            if self.velocity.length() - self.acceleration.length() > 0:
+                deceleration = -self.velocity.normalize() * DRILL_DECELERATION
+                self.acceleration = deceleration
             else:
-                if self.velocity.length() - self.acceleration.length() > 0:
-                    self.acceleration = -self.velocity.normalize() * DRILL_DECELERATION
-                else:
-                    self.acceleration *= 0
-                    self.velocity *= 0
+                self.acceleration *= 0
+                self.velocity *= 0
 
         # update velocity with acceleration
         self.velocity += self.acceleration
@@ -49,10 +48,7 @@ class Drill(LivingEntity):
         collided_with_tiles = map_obj.get_tiles_in_rect(self.rect)
         
         for wall in collided_with_tiles:
-            if wall.ground_material == GroundMaterial.AIR:
-                continue
-
-            map_obj.mine(wall, self.velocity)
+            map_obj.mine(wall.tile_pos, self.velocity)
 
     
     def die(self):

@@ -20,6 +20,10 @@ class Tile(GameObject):
 
     def destroy(self):
         self.ground_material = GroundMaterial.AIR
+
+    @property
+    def tile_pos(self):
+        return self.pos // TILE_SIZE
     
 
 
@@ -52,6 +56,9 @@ class Map:
         if random.random() > 0.03:
             return GroundMaterial.STONE
         return GroundMaterial.COPPER
+
+    def get_tile_at(self, tile_pos):
+        return self._tiles.get((*tile_pos,))
         
     def get_tiles_list(self):
         tiles_list = list(self._tiles.values())
@@ -72,13 +79,20 @@ class Map:
                     tiles.append(tile)
         return tiles
 
-    def mine(self, tile: Tile, direction: pg.Vector2 = pg.Vector2(0, 0)):
-        tile_pos = TC(tile.rect.topleft, revert=True)
-        if self._tiles.get(tile_pos) is None:
-            return
+    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2 = pg.Vector2(0, 0)):
+        tile_pos = (*tile_pos_vec,)
 
-        # change material to air
+        # if trying to mine unexplored area, explore first
+        tile = self._tiles.get(tile_pos)
+        if tile is None:
+            self.generate_tile_at(tile_pos)
+            tile = self._tiles.get(tile_pos)
+
+        # change material to air if not already air
+        if tile.ground_material == GroundMaterial.AIR:
+            return
         tile.destroy()
+
         self._tiles_mined_since_last_cave += 1
 
         # spawn caves with pseudo-random
@@ -104,8 +118,18 @@ class Map:
             self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
         self._generate_neighbours(tile_pos)
 
-    def generate_tile_at(self, tile_pos: tuple[int, int]):
-        """Sets or updates a tile at specific coordinates."""
+    def _generate_neighbours(self, tile_pos):
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            neigh = (tile_pos[0] + dx, tile_pos[1] + dy)
+            if self._tiles.get(neigh) is None:
+                self.generate_tile_at(neigh)
+
+    def is_air(self, tile_pos: tuple[int, int]) -> bool:
+        """Checks if a tile at given position is Air."""
+        tile = self._tiles.get(tile_pos)
+        return tile and tile.ground_material == GroundMaterial.AIR
+
+    def generate_tile_at(self, tile_pos: tuple):
         material = self._get_generated_tile_material(tile_pos)
         existing = self._tiles.get(tile_pos)
         if existing:
@@ -114,22 +138,4 @@ class Map:
             existing.ground_material = material
         else:
             self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
-
-    def _generate_neighbours(self, tile_pos):
-        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            neigh = (tile_pos[0] + dx, tile_pos[1] + dy)
-            if self._tiles.get(neigh) is None:
-                self.generate_tile(neigh)
-
-    def is_air(self, tile_pos: tuple[int, int]) -> bool:
-        """Checks if a tile at given position is Air."""
-        tile = self._tiles.get(tile_pos)
-        return tile and tile.ground_material == GroundMaterial.AIR
-
-                
-
-    def generate_tile(self, tile_pos: tuple[int, int]):
-        """some generation logic like different ores and caves"""
-        material = self._get_generated_tile_material(tile_pos)
-        self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
         

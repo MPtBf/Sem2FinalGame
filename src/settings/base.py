@@ -2,6 +2,7 @@
 
 from enum import Enum, auto
 import pygame as pg
+from dataclasses import dataclass
 
 
 # --- drawing --- 
@@ -60,6 +61,16 @@ class Intent(Enum):
     RESUME = auto()
 
 
+
+@dataclass
+class ShootIntent:
+    direction: pg.Vector2
+    
+@dataclass
+class MineIntent:
+    mouse_pos: pg.Vector2
+
+
 class ProjectileOwner(Enum):
     PLAYER = auto()
     ENEMY = auto()
@@ -91,7 +102,7 @@ KEY_TO_INTENT = {
     pg.K_s: Intent.MOVE_DOWN,
     pg.K_a: Intent.MOVE_LEFT,
     pg.K_d: Intent.MOVE_RIGHT,
-    pg.K_e: Intent.MINE,
+    pg.K_SPACE: Intent.MINE,
 
     pg.K_p: Intent.PAUSE,
     pg.K_o: Intent.RESUME,

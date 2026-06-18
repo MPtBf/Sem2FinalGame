@@ -2,11 +2,13 @@
 from math import ceil
 import pygame as pg
 
+from src.settings.balance import MINE_REACH_DIST
 from src.models.game_object import LivingEntity
 from src.core.world_handler import WorldHandler
 from src.settings.base import TILE_SIZE, PlayerState
 from src.settings.visual import HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, UI_FONT_FAMILY
 from src.views.camera import Camera
+from src.utils.misc import calc_drone_mine_pos
 
 
 
@@ -32,6 +34,11 @@ class UIManager:
         # check buttons for clicks  & emit
         ...
 
+    def _render_player_mine_cursor(self, world_handler: WorldHandler, camera: Camera):
+        if world_handler.player_state != PlayerState.ALIVE:
+            return
+        mine_pos = calc_drone_mine_pos(world_handler.drone, camera)
+        pg.draw.circle(self.screen, (255,0,0), mine_pos - camera.offset, 3)
 
     def _render_health_bars(self, living_entities: list[LivingEntity]):
         for entity in living_entities:
@@ -67,6 +74,7 @@ class UIManager:
 
     def render(self, camera, world: WorldHandler, living_entities: list[LivingEntity]):
         self._render_health_bars(living_entities)
+        self._render_player_mine_cursor(world, camera)
         self._render_player_respawn_text(world)
 
     def _render_player_respawn_text(self, world: WorldHandler):
