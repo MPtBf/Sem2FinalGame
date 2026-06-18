@@ -8,8 +8,8 @@ from src.models.projectile import Projectile
 from src.utils.shortcuts import TC
 from src.views.camera import Camera
 from .event_bus import EventBus, EventType
-from src.settings.base import PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
-from src.settings.balance import PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
+from src.settings.base import ItemType, PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
+from src.settings.balance import INITIALLY_ALLOCATED_RESOURCES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
 from src.settings.visual import DRONE_SPAWN_POS, DRILL_SPAWN_POS, ENEMY_SIZE
 
 
@@ -27,18 +27,25 @@ class WorldHandler:
         self.player_respawns_in = PLAYER_RESPAWN_TIME
 
         self.event_bus.subscribe(EventType.ENEMY_SPAWN, self._on_enemy_spawn_event)
-        self.event_bus.subscribe(EventType.PROJECTILE_SPAWN, self._on_projectile_spawn)
+        self.event_bus.subscribe(EventType.PLAYER_SHOOT, self._on_player_shoot)
         self.event_bus.subscribe(EventType.PLAYER_DEATH, self._on_player_death)
 
     def _setup_drone(self, pos: pg.Vector2):
         self.drone = Drone(pos, self.debug)
+        self.drone.inventory = {item: INITIALLY_ALLOCATED_RESOURCES[item] for item in self.drone.inventory}
+
         self.drone.event_bus = self.event_bus
 
     def _on_enemy_spawn_event(self, positions: list[tuple[int, int]]):
         self.spawn_enemies(positions)
 
-    def _on_projectile_spawn(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
+    def _on_player_shoot(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
+        # consume bullet (copper for now)
+        if self.drone.inventory[ItemType.COPPER] <= 0:
+            return False
+        self.drone.inventory[ItemType.COPPER] -= 1
         self.projectiles.append(Projectile(pos, direction, owner_type=ProjectileOwner.PLAYER, shooter_velocity=shooter_velocity))
+        return True
 
     def _on_player_death(self):
         self.player_state = PlayerState.RESPAWNING

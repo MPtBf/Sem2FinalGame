@@ -65,7 +65,7 @@ class Drone(LivingEntity):
 
     def shoot(self, payload: ShootIntent, *args):
         spawn_pos = self.pos + self.size / 2
-        self.event_bus.emit(EventType.PROJECTILE_SPAWN, pos=spawn_pos, 
+        self.event_bus.emit(EventType.PLAYER_SHOOT, pos=spawn_pos, 
             direction=payload.direction, shooter_velocity=pg.Vector2(self.velocity))
 
     def mine(self, payload: MineIntent, map: Map = None):

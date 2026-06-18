@@ -88,7 +88,7 @@ class EventType(Enum):
     GAME_OVER = auto()
     DRILL_DAMAGE = auto()
 
-    PROJECTILE_SPAWN = auto()
+    PLAYER_SHOOT = auto()
 
 
 class PlayerState(Enum):

@@ -1,6 +1,6 @@
 # gameplay balance config: health, damage, speed, cooldowns
 
-from .base import TILE_SIZE, ObjectType
+from .base import TILE_SIZE, ItemType, ObjectType
 
 
 # --- player ---
@@ -10,6 +10,12 @@ DRONE_ACCELERATION = TILE_SIZE * 1.0
 DRONE_DECELERATION = TILE_SIZE * 0.25
 
 MINE_REACH_DIST = TILE_SIZE * 1.5
+
+INITIALLY_ALLOCATED_RESOURCES = {
+    ItemType.COPPER: 10,
+    ItemType.BULLET: 0,
+    ItemType.PATCH: 0,
+}
 
 
 # --- drill ---
