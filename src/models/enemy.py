@@ -1,7 +1,6 @@
 import pygame as pg
 from .game_object import LivingEntity, ObjectType
-from src.settings.balance import ENEMY_HEALTH, ENEMY_CONTACT_DAMAGE, ENEMY_DAMAGE_COOLDOWN_SEC, ENEMY_DECELERATION, KNOCKBACK_FORCE, ENEMY_MAX_SPEED, ENEMY_ACCELERATION, ENEMY_VISION_RADIUS
-from src.settings.visual import ENEMY_SIZE
+from src.settings.balance import ENEMY_HEALTH, ENEMY_CONTACT_DAMAGE, ENEMY_DAMAGE_COOLDOWN_SEC, ENEMY_DECELERATION, ENEMY_SIZE, KNOCKBACK_FORCE, ENEMY_MAX_SPEED, ENEMY_ACCELERATION, ENEMY_VISION_RADIUS
 from src.settings.base import PlayerState
 
 class Enemy(LivingEntity):

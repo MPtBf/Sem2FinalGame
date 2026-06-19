@@ -6,18 +6,6 @@ from enum import Enum, auto
 from .base import TILE_SIZE, Intent, ItemType, ObjectType
 
 
-# --- sizes ---
-DRONE_SIZE = (1.5 * TILE_SIZE, 1.5 * TILE_SIZE)
-DRILL_SIZE = (TILE_SIZE * 7, TILE_SIZE * 15)
-PROJECTILE_SIZE = (TILE_SIZE // 4, TILE_SIZE // 4)
-ENEMY_SIZE = (TILE_SIZE * 0.8, TILE_SIZE * 0.8)
-
-
-# --- spawn positions ---
-DRONE_SPAWN_POS = (-DRONE_SIZE[0] // 2, -DRONE_SIZE[1] // 2)
-DRILL_SPAWN_POS = (-DRILL_SIZE[0] // 2, -DRILL_SIZE[1] - 3 * TILE_SIZE)
-
-
 # --- z-index ---
 Z_INDEX = {
     ObjectType.GROUND: 0,

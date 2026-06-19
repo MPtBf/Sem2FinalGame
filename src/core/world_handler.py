@@ -9,8 +9,7 @@ from src.utils.shortcuts import TC
 from src.views.camera import Camera
 from .event_bus import EventBus, EventType
 from src.settings.base import ItemType, PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
-from src.settings.balance import BULLETS_PER_COPPER, DRILL_HP_PER_PATCH, DRILL_HEALTH, INITIALLY_ALLOCATED_RESOURCES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
-from src.settings.visual import DRONE_SPAWN_POS, DRILL_SPAWN_POS, ENEMY_SIZE
+from src.settings.balance import BULLETS_PER_COPPER, DRILL_HP_PER_PATCH, DRILL_HEALTH, DRILL_SPAWN_POS, DRONE_SPAWN_POS, ENEMY_SIZE, INITIALLY_ALLOCATED_RESOURCES, PLAYER_RESPAWN_TIME, PROJECTILE_DAMAGE, VELOCITY_LOSS_ON_COLLISION
 
 
 class WorldHandler:
@@ -107,17 +106,17 @@ class WorldHandler:
             self.debug.set('projectiles', len(self.projectiles))
             self.debug.set('tiles_since_cave', self.map._tiles_mined_since_last_cave)
 
-    def get_all_objects(self) -> list[GameObject]:
+    def get_all_objects_in_rect(self) -> list[GameObject]:
         return self.enemies + self.projectiles + self.map.get_tiles_list() + [self.drone, self.drill]
 
     def get_dynamic_objects(self) -> list[DynamicObject]:
         return self.enemies + self.projectiles + [self.drone, self.drill]
 
-    def get_visible_objects(self, camera: Camera) -> list[GameObject]:
-        # only objects in view_rect, for efficient rendering
-        static_visible = self.map.get_tiles_in_rect(camera._rect)
-        dynamic_visible = [obj for obj in self.get_dynamic_objects() if camera.is_obj_in_view(obj)]
-        return static_visible + dynamic_visible
+    def get_all_objects_in_rect(self, rect) -> list[GameObject]:
+        # only objects in rect, for efficient rendering
+        static = self.map.get_tiles_in_rect(rect)
+        dynamic = [obj for obj in self.get_dynamic_objects() if rect.colliderect(obj.rect)]
+        return static + dynamic
 
     def _resolve_collisions(self, obj, axis):
         # only handle wall collisions physics

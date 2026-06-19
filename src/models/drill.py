@@ -5,8 +5,7 @@ from src.models.drone import Drone
 from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
 from src.settings.base import GroundMaterial, EventType
-from src.settings.balance import DRILL_ACCELERATION, DRILL_DECELERATION, DRILL_MAX_SPEED, DRILL_HEALTH, DRONE_ACCELERATION
-from src.settings.visual import DRILL_SIZE
+from src.settings.balance import DRILL_ACCELERATION, DRILL_DECELERATION, DRILL_MAX_SPEED, DRILL_HEALTH, DRILL_SIZE, DRONE_ACCELERATION
 
 class Drill(LivingEntity):
     def __init__(self, pos: pg.Vector2, event_bus):

@@ -1,7 +1,6 @@
 import pygame as pg
 from src.models.game_object import DynamicObject, ObjectType
-from src.settings.balance import PROJECTILE_INHERIT_PLAYER_VELOCITY, PROJECTILE_SPEED, PROJECTILE_LIFETIME
-from src.settings.visual import PROJECTILE_SIZE
+from src.settings.balance import PROJECTILE_INHERIT_PLAYER_VELOCITY, PROJECTILE_SIZE, PROJECTILE_SPEED, PROJECTILE_LIFETIME
 from src.settings.base import ProjectileOwner
 
 

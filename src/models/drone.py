@@ -3,8 +3,7 @@ import pygame as pg
 from src.models.map import Map, Tile
 from .game_object import LivingEntity, ObjectType
 from src.settings.base import MATERIAL_TO_ITEM_MAP, TILE_SIZE, Intent, ItemType, MineIntent, ShootIntent
-from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH, MINE_REACH_DIST
-from src.settings.visual import DRONE_SIZE
+from src.settings.balance import DRONE_MAX_SPEED, DRONE_ACCELERATION, DRONE_DECELERATION, DRONE_HEALTH, DRONE_SIZE, MINE_REACH_DIST
 from src.core.event_bus import EventType
 
 

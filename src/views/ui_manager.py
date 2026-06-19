@@ -6,7 +6,7 @@ from src.settings.balance import MINE_REACH_DIST
 from src.models.game_object import LivingEntity
 from src.core.world_handler import WorldHandler
 from src.settings.base import KEY_TO_INTENT, TILE_SIZE, PlayerState
-from src.settings.visual import CONTROLS_OVERLAY_FONT_SIZE, CONTROLS_TEXT, OVERLAY_BOTTOM_MARGIN, OVERLAY_RIGHT_MARGIN, OVERLAY_BOTTOM_MARGIN, HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, INTENT_TO_TEXT, OVERLAY_FONT_COLOR, INV_OVERLAY_FONT_SIZE, INVENTORY_TEXT, ITEM_TO_TEXT, OVERLAY_LEFT_MARGIN, OVERLAY_LINES_MARGIN, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, SECONDS_TEXT, UI_FONT_FAMILY
+from src.settings.visual import CONTROLS_OVERLAY_FONT_SIZE, CONTROLS_TEXT, HP_BAR_FLASH_DURATION, OVERLAY_BOTTOM_MARGIN, OVERLAY_RIGHT_MARGIN, OVERLAY_BOTTOM_MARGIN, HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, INTENT_TO_TEXT, OVERLAY_FONT_COLOR, INV_OVERLAY_FONT_SIZE, INVENTORY_TEXT, ITEM_TO_TEXT, OVERLAY_LEFT_MARGIN, OVERLAY_LINES_MARGIN, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, SECONDS_TEXT, UI_FONT_FAMILY
 from src.views.camera import Camera
 from src.utils.misc import calc_drone_mine_pos
 
@@ -42,7 +42,9 @@ class UIManager:
 
     def _render_health_bars(self, living_entities: list[LivingEntity]):
         for entity in living_entities:
-            if not entity.is_visible or not self.camera.is_obj_in_view(entity):
+            if not self.camera.is_obj_in_view(entity):
+                continue
+            if issubclass(type(object), LivingEntity) and not object.is_alive():
                 continue
             
             health_ratio = max(0.0, min(1.0, entity.health / entity.max_health))
@@ -58,7 +60,7 @@ class UIManager:
             pg.draw.rect(self.screen, HP_BAR_BACKGROUND_COLOR, (screen_pos.x, screen_pos.y, bar_width, HP_BAR_HEIGHT))
             
             # determine bar color
-            if entity._damage_flash_timer > 0:
+            if entity._time_drom_last_damage < HP_BAR_FLASH_DURATION:
                 # white flash on damage
                 bar_color = HP_BAR_FLASH_COLOR
             else:

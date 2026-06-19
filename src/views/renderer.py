@@ -1,7 +1,8 @@
+from src.models.drone import Drone
 from src.settings.base import TILE_SIZE
 from src.settings.visual import (HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, 
                              HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, 
-                             HP_BAR_FLASH_COLOR, HP_BAR_FLASH_DURATION)
+                             HP_BAR_FLASH_COLOR, HP_BAR_FLASH_DURATION, Z_INDEX)
 from src.core.world_handler import WorldHandler
 from src.views.ui_manager import UIManager
 from src.utils.debug_collector import DebugCollector
@@ -46,14 +47,14 @@ class Renderer:
         self.screen.fill((0, 0, 0))
         
         # rendering optimization: get only visible objects from the grid
-        visible_objects = self.world.get_visible_objects(self.camera)
+        visible_objects = self.world.get_all_objects_in_rect(self.camera._rect)
         
         if self.debug:
             self.debug.set('rendered_objects', len(visible_objects))
         
         # applying sorting by z-index
-        for object in sorted(visible_objects, key=lambda e: e.z_index):
-            if not object.is_visible:
+        for object in sorted(visible_objects, key=lambda e: Z_INDEX[e.object_type]):
+            if issubclass(type(object), LivingEntity) and not object.is_alive():
                 continue
             # checking different ground materials
             sprite = None
