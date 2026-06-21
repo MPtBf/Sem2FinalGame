@@ -1,5 +1,5 @@
 from src.settings.balance import OBJECT_TO_SIZE
-from src.settings.visual import (BACKGROUND_COLOR, DEFAULT_OBJECT_COLORS, OBJECT_TO_TEXTURE_PATH, Z_INDEX)
+from src.settings.visual import (BACKGROUND_COLOR, DEFAULT_OBJECT_COLORS, OBJECT_TO_TEXTURE_PATH, Z_INDEX, UI_FONT_FAMILY)
 from src.core.world_handler import WorldHandler
 from src.views.ui_manager import UIManager
 from src.utils.debug_collector import DebugCollector
@@ -18,18 +18,19 @@ class Renderer:
         self.debug = debug
         self.ui_manager = ui_manager
         self.world = world_handler
-        
+        self.font = pg.font.SysFont(UI_FONT_FAMILY, 48)
+
         self._setup_images()
 
     def _setup_images(self):
-        self.images = {}
+        self.sprites = {}
         for object_type in ObjectType:
             if object_type == ObjectType.GROUND:
-                self.images[object_type] = {}
+                self.sprites[object_type] = {}
                 for material in GroundMaterial: 
-                    self.images[object_type][material] = self._get_image(object_type, material) 
+                    self.sprites[object_type][material] = self._get_image(object_type, material) 
             else:
-                self.images[object_type] = self._get_image(object_type)
+                self.sprites[object_type] = self._get_image(object_type)
 
     def _get_image(self, object_type, ground_material=None):
         if object_type == ObjectType.GROUND:
@@ -66,14 +67,14 @@ class Renderer:
             if issubclass(type(object), LivingEntity) and not object.is_alive():
                 continue
             # checking different ground materials
-            image = None
+            sprite = None
             if object.object_type == ObjectType.GROUND:
-                image = self.images[ObjectType.GROUND][object.ground_material]
+                sprite = self.sprites[ObjectType.GROUND][object.ground_material]
             else:
-                image = self.images[object.object_type]
+                sprite = self.sprites[object.object_type]
 
-            self.screen.blit(image, self.camera.apply(object.pos))
+            self.screen.blit(sprite, self.camera.apply(object.pos))
 
         living_entities = self.world.get_living_entities()
-        self.ui_manager.render(self.camera, self.world, living_entities)
+        self.ui_manager.render(self.camera, self.world, living_entities, is_paused)
 

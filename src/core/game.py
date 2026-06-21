@@ -1,6 +1,7 @@
 import pygame as pg
 from src.settings.base import *
 from src.views.ui_manager import UIManager
+from src.utils.misc import dict_key_from_value
 from .world_handler import WorldHandler
 from .input_handler import InputHandler
 from .event_bus import EventBus
@@ -46,6 +47,8 @@ class Game:
         for event in events:
             if event.type == pg.QUIT:
                 self.is_running = False
+            if event.type == pg.KEYDOWN and event.key == dict_key_from_value(KEY_TO_INTENT, Intent.PAUSE):
+                self.is_paused = not self.is_paused
         return events
 
     def run(self):

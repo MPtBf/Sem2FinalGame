@@ -4,28 +4,44 @@ import pygame as pg
 from src.core.event_bus import EventBus
 from .game_object import GameObject, LivingEntity
 from src.settings.balance import ENEMY_HEALTH, ENEMY_CONTACT_DAMAGE, ENEMY_DAMAGE_COOLDOWN_SEC, ENEMY_DECELERATION, ENEMY_SIZE, KNOCKBACK_FORCE, ENEMY_MAX_SPEED, ENEMY_ACCELERATION, ENEMY_NOTICING_RADIUS
-from src.settings.base import FMSState, PlayerState, EventType, ObjectType
+from src.settings.base import FMSState, PlayerState, EventType, ObjectType, GroundMaterial, TILE_SIZE
+from src.utils.astar import find_path
+
+class MapTilesAdapter:
+    def __init__(self, game_map):
+        self._map = game_map
+
+    def get(self, pos: tuple[int, int]):
+        tile = self._map.get_tile_at(pos)
+        if tile is not None:
+            return tile.ground_material
+        return GroundMaterial.STONE
+
 
 class Enemy(LivingEntity):
     def __init__(self, pos: pg.Vector2, event_bus: EventBus):
         super().__init__(
-            pos, 
-            pg.Vector2(*ENEMY_SIZE), 
-            ObjectType.ENEMY, 
+            pos,
+            pg.Vector2(*ENEMY_SIZE),
+            ObjectType.ENEMY,
             ENEMY_HEALTH
         )
         self._damage_cooldown = 0.0
         self._acceleration = pg.Vector2(0, 0)
         self.event_bus = event_bus
+
         self.state = FMSState.IDLE
         self.target_pos: pg.Vector2 = None
+        self._path = []
+        self._path_timer = 0.0
+        self._path_update_interval = 0.3
 
     def update_logic(self, dt, world, intents=None):
         super().update_logic(dt, world, intents)
         if self._damage_cooldown > 0:
             self._damage_cooldown -= dt
 
-        self._update_intents(world)
+        self._update_intents(dt, world)
 
     def _find_target(self, world):
         # movement towards nearest of drone (if player alive) or drill
@@ -54,15 +70,16 @@ class Enemy(LivingEntity):
             self.target_pos = None
             self.state = FMSState.IDLE
 
-    def _update_intents(self, world):
+    def _update_intents(self, dt, world):
         # select target
         self._find_target(world)
 
         # do action
         if self.state == FMSState.IDLE:
+            self._path = []
             self._walk_around()
         elif self.state == FMSState.CHASING:
-            self._chase_target()
+            self._chase_target(dt, world)
 
         self._update_physics()
 
@@ -76,8 +93,45 @@ class Enemy(LivingEntity):
             self._acceleration *= 0
             self._velocity *= 0
 
-    def _chase_target(self):
-        target_vec = self.target_pos - self.pos
+    def _chase_target(self, dt, world):
+        if not self.target_pos:
+            self._acceleration *= 0
+            return
+
+        # Находим координаты плиток для врага и цели
+        enemy_tile = (
+            int((self.pos.x + self.size.x / 2) // TILE_SIZE),
+            int((self.pos.y + self.size.y / 2) // TILE_SIZE)
+        )
+        target_tile = (
+            int(self.target_pos.x // TILE_SIZE),
+            int(self.target_pos.y // TILE_SIZE)
+        )
+
+        # Периодически обновляем путь
+        self._path_timer += dt
+        if not self._path or self._path_timer >= self._path_update_interval:
+            self._path_timer = 0.0
+            adapter = MapTilesAdapter(world.map)
+            self._path = find_path(adapter, enemy_tile, target_tile)
+            if self._path is None:
+                self._path = []
+
+        # Удаляем из пути плитки, которые враг уже прошел
+        while self._path and enemy_tile == self._path[0]:
+            self._path.pop(0)
+
+        # Выбираем целевую точку для движения
+        if self._path:
+            next_tile = self._path[0]
+            target_world_pos = pg.Vector2(
+                next_tile[0] * TILE_SIZE + TILE_SIZE / 2,
+                next_tile[1] * TILE_SIZE + TILE_SIZE / 2
+            )
+        else:
+            target_world_pos = self.target_pos
+
+        target_vec = target_world_pos - (self.pos + self.size / 2)
 
         # calculate acceleration
         if target_vec.length() > 0:
@@ -92,7 +146,7 @@ class Enemy(LivingEntity):
                 self._velocity *= 0
 
     def _update_physics(self):
-        self._velocity += self.acceleration
+        self._velocity += self._acceleration
 
         # limit speed to max speed
         if self._velocity.length() > ENEMY_MAX_SPEED:

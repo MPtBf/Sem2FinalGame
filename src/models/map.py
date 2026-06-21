@@ -2,7 +2,7 @@
 
 from enum import Enum, auto
 import random
-from src.settings.balance import ENTITY_TO_MINE_EFFICIENCY, MINE_TIME_SPREAD
+from src.settings.balance import COPPER_NOISE_SIZE, COPPER_NOISE_THRESHOLD, ENTITY_TO_MINE_EFFICIENCY, HARD_STONE_NOISE_SIZE, HARD_STONE_NOISE_THRESHOLD, MINE_TIME_SPREAD
 from src.settings.base import (
     MATERIAL_TO_ITEM_MAP, SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, GroundMaterial
 )
@@ -14,6 +14,7 @@ from src.utils.shortcuts import TC
 from src.models.cave import Cave
 from src.utils.debug_collector import DebugCollector
 from src.settings.balance import MATERIAL_TO_MINE_TIME
+from src.utils.perlin_noise import PerlinNoise
 
 
 class Tile(GameObject):
@@ -41,7 +42,20 @@ class Map:
         self._tiles: dict[tuple[int, int], Tile] = {}
         self.tiles_mined_since_last_cave = 0
 
+        self.seed = random.random()
+        self._vn = PerlinNoise(seed=self.seed)
+
         self._init_start_zone()
+
+    def _get_generated_copper(self, tile_pos):
+        noise_pos = tile_pos[0] / COPPER_NOISE_SIZE, tile_pos[1] / COPPER_NOISE_SIZE
+        val = self._vn.noise(*noise_pos)
+        return val > COPPER_NOISE_THRESHOLD
+
+    def _get_generated_hard_stone(self, tile_pos):
+        noise_pos = tile_pos[0] / HARD_STONE_NOISE_SIZE, tile_pos[1] / HARD_STONE_NOISE_SIZE
+        val = self._vn.noise(*noise_pos)
+        return val > HARD_STONE_NOISE_THRESHOLD
 
     def _init_start_zone(self):
         
@@ -60,11 +74,11 @@ class Map:
                         pg.Vector2(*TC(x, y)), material)
 
     def _get_generated_tile_material(self, tile_pos):
-        if random.random() > 0.03:
-            return GroundMaterial.STONE
-        if random.random() > 0.5:
+        if self._get_generated_copper(tile_pos):
+            return GroundMaterial.COPPER
+        if self._get_generated_hard_stone(tile_pos):
             return GroundMaterial.HARD_STONE
-        return GroundMaterial.COPPER
+        return GroundMaterial.STONE
 
     def get_tile_at(self, tile_pos):
         return self._tiles.get((*tile_pos,))
@@ -121,7 +135,7 @@ class Map:
         if self.tiles_mined_since_last_cave >= MIN_TILES_BETWEEN:
             chance = SPAWN_CHANCE_BASE
             if random.random() < chance:
-                cave = Cave(self, self.event_bus, self.debug)
+                cave = Cave(self._vn, self, self.event_bus, self.debug)
                 success = cave.generate_cave(pg.Vector2(tile_pos), direction)
                 self.tiles_mined_since_last_cave = 0
                 if success:

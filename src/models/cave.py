@@ -4,16 +4,15 @@ import pygame as pg
 from src.core.event_bus import EventBus
 from src.settings.cave_config import ENEMY_SPAWN_PER_TILE, GEN_MIN_TRY_DISTANCE_TILES, GEN_OFFSET_TRIES, GEN_TRY_OFFSET_SPREAD_TILES, GEN_TRY_OFFSET_TILES, MAIN_CAVE_SCALE_RANGE, MAIN_CAVE_THRESHOLD_RANGE, MAX_RECURSON_DEPTH, NOISE_START_SEARCH_TRIES, VEIN_ANGLE_RANGE, VEIN_SCALE_X_RANGE, VEIN_SCALE_Y_RANGE, VEIN_THRESHOLD_RANGE
 from src.settings.base import TILE_SIZE, GroundMaterial, EventType
-import vnoise
 
 from src.utils.debug_collector import DebugCollector
+from src.utils.perlin_noise import PerlinNoise
 
 
 
 class Cave:
-    def __init__(self, map, event_bus: EventBus, debug: DebugCollector) -> None:
-        self.seed = random.random()
-        self.vn = vnoise.Noise(seed=self.seed)
+    def __init__(self, vn: PerlinNoise, map, event_bus: EventBus, debug: DebugCollector) -> None:
+        self.vn = vn
         self.offset_tile_pos = pg.Vector2(0, 0)
         self.map = map
         self.event_bus = event_bus
@@ -135,13 +134,13 @@ class Cave:
             
     def _is_cave_at_pos(self, pos: pg.Vector2):
         # main big caves
-        val_main = self.vn.noise2(*(pos / self.main_cave_scale))
+        val_main = self.vn.noise(*(pos / self.main_cave_scale))
         
         # long veins with rotation
         rad = math.radians(self.vein_angle)
         tx = (pos.x * math.cos(rad) - pos.y * math.sin(rad)) / self.vein_scale_x
         ty = (pos.x * math.sin(rad) + pos.y * math.cos(rad)) / self.vein_scale_y
-        val_veins = self.vn.noise2(tx, ty)
+        val_veins = self.vn.noise(tx, ty)
 
         if val_main > self.main_cave_threshold or val_veins > self.vein_threshold:
             return True

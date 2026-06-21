@@ -4,15 +4,15 @@ from .base import TILE_SIZE, GroundMaterial, ItemType, ObjectType
 
 # Mapping of ground material to time needed to mine (seconds)
 MATERIAL_TO_MINE_TIME = {
-    GroundMaterial.STONE: 0.2,
-    GroundMaterial.COPPER: 0.5,
-    GroundMaterial.HARD_STONE: 0.4,
+    GroundMaterial.STONE: 0.3,
+    GroundMaterial.COPPER: 0.6,
+    GroundMaterial.HARD_STONE: 0.8,
 }
 
 # Mapping of entity types to mining efficiency multiplier
 ENTITY_TO_MINE_EFFICIENCY = {
-    ObjectType.DRILL: 10.0,
-    ObjectType.DRONE: 2.0,
+    ObjectType.DRILL: 2.0,
+    ObjectType.DRONE: 1.0,
 }
 
 # Small random variation applied to mining time per tick
@@ -42,7 +42,7 @@ INITIALLY_ALLOCATED_RESOURCES = {
 
 # --- drill ---
 DRILL_HEALTH = 1000
-DRILL_MAX_SPEED = TILE_SIZE * 10
+DRILL_MAX_SPEED = TILE_SIZE * 3
 DRILL_ACCELERATION = TILE_SIZE * 0.1
 DRILL_DECELERATION = TILE_SIZE * 0.2
 
@@ -96,3 +96,11 @@ OBJECT_TO_SIZE = {
     ObjectType.PROJECTILE: PROJECTILE_SIZE,
     ObjectType.GROUND: (TILE_SIZE, TILE_SIZE),
 }
+
+
+# ores
+COPPER_NOISE_SIZE = 4
+COPPER_NOISE_THRESHOLD = 0.4
+
+HARD_STONE_NOISE_SIZE = 15
+HARD_STONE_NOISE_THRESHOLD = 0.3

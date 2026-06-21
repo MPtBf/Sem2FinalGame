@@ -12,9 +12,9 @@ class Drill(LivingEntity):
         super().__init__(pos, pg.Vector2(*DRILL_SIZE), ObjectType.DRILL, DRILL_HEALTH)
         self.storage = {}
         self.event_bus = event_bus
-        self._is_toggled = False  # toggle movement by player input
         self.debug = debug
         self._is_holding_toggle = False
+        self._is_toggled = False  # toggle movement by player input
 
     def update_logic(self, dt, world, intents=None):
         super().update_logic(dt, world, intents)

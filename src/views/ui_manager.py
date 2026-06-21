@@ -86,7 +86,7 @@ class UIManager:
             # fill health bar
             pg.draw.rect(self.screen, bar_color, (screen_pos.x, screen_pos.y, current_width, HP_BAR_HEIGHT))
 
-    def render(self, camera, world: WorldHandler, living_entities: list[LivingEntity]):
+    def render(self, camera, world: WorldHandler, living_entities: list[LivingEntity], is_paused: bool):
         # in-world UI
         self._render_health_bars(living_entities)
         self._render_player_mine_cursor(world, camera)
@@ -94,6 +94,14 @@ class UIManager:
         self._render_player_respawn_text(world)
         self._render_player_inventory(world)
         self._render_hotkeys(world)
+        if is_paused:
+            self._render_pause_text()
+
+    def _render_pause_text(self):
+        font = pg.font.SysFont(UI_FONT_FAMILY, 48)
+        text_surface = font.render('Пауза. Нажмите P, чтобы продолжить', True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(text_surface, text_rect)
 
     def _render_hotkeys(self, world: WorldHandler):
         texts = []
