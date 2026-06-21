@@ -5,8 +5,9 @@ import pygame as pg
 from dataclasses import dataclass
 
 
+
 # --- drawing --- 
-TILE_SIZE = 25
+TILE_SIZE = 20
 CAMERA_ZOOM_BASE = 1.0
 CAMERA_ZOOM_TILES = 15
 
@@ -57,6 +58,7 @@ class Intent(Enum):
     SHOOT = auto()
     MINE = auto()
     HEAL_DRILL = auto()
+    TOGGLE_DRILL = auto()
 
     PAUSE = auto()
 
@@ -79,11 +81,11 @@ class ProjectileOwner(Enum):
 class EventType(Enum):
     ENEMY_SPAWN = auto()
     ENEMY_DEATH = auto()
-    ENEMY_DAMAGE = auto()
+    # ENEMY_DAMAGE = auto()
 
     PLAYER_DEATH = auto()
-    PLAYER_DAMAGE = auto()
-    PLAYER_COLLECT_RESOURCES = auto()
+    # PLAYER_DAMAGE = auto()
+    # PLAYER_COLLECT_RESOURCES = auto()
 
     GAME_OVER = auto()
     DRILL_DAMAGE = auto()
@@ -96,6 +98,9 @@ class PlayerState(Enum):
     ALIVE = auto()
     RESPAWNING = auto()
 
+class FMSState(Enum):
+    IDLE = auto()
+    CHASING = auto()
 
 class ItemType(Enum):
     COPPER = auto()
@@ -114,8 +119,9 @@ KEY_TO_INTENT = {
     pg.K_s: Intent.MOVE_DOWN,
     pg.K_a: Intent.MOVE_LEFT,
     pg.K_d: Intent.MOVE_RIGHT,
-    pg.K_SPACE: Intent.MINE,
     pg.K_e: Intent.HEAL_DRILL,
+    pg.K_q: Intent.TOGGLE_DRILL,
 
     pg.K_p: Intent.PAUSE,
 }
+

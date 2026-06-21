@@ -6,8 +6,10 @@ from src.utils.misc import dict_key_from_value
 class InputHandler:
     def get_intents(self, events: list[pg.event.Event], camera, drone) -> dict[Intent, any]:
         intents = {intent: None for key, intent in KEY_TO_INTENT.items() if pg.key.get_pressed()[key]}
-        if Intent.MINE in intents.keys():
-            mouse_pos = pg.Vector2(pg.mouse.get_pos()) + camera.offset 
+
+        # continuous mining while left mouse button is held down
+        if pg.mouse.get_pressed()[2]:
+            mouse_pos = pg.Vector2(pg.mouse.get_pos()) + camera.offset
             payload = MineIntent(mouse_pos=mouse_pos)
             intents[Intent.MINE] = payload
         for event in events:

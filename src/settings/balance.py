@@ -1,17 +1,34 @@
 # gameplay balance config: health, damage, speed, cooldowns
 
-from .base import TILE_SIZE, ItemType, ObjectType
+from .base import TILE_SIZE, GroundMaterial, ItemType, ObjectType
+
+# Mapping of ground material to time needed to mine (seconds)
+MATERIAL_TO_MINE_TIME = {
+    GroundMaterial.STONE: 0.2,
+    GroundMaterial.COPPER: 0.5,
+    GroundMaterial.HARD_STONE: 0.4,
+}
+
+# Mapping of entity types to mining efficiency multiplier
+ENTITY_TO_MINE_EFFICIENCY = {
+    ObjectType.DRILL: 10.0,
+    ObjectType.DRONE: 2.0,
+}
+
+# Small random variation applied to mining time per tick
+MINE_TIME_SPREAD = 0.05
 
 
 # --- player ---
 DRONE_HEALTH = 30
 DRONE_MAX_SPEED = TILE_SIZE * 15
-DRONE_ACCELERATION = TILE_SIZE * 1.0
 DRONE_DECELERATION = TILE_SIZE * 0.25
+DRONE_ACCELERATION = TILE_SIZE * 1.0 + DRONE_DECELERATION
 
 DRONE_SIZE = (1.5 * TILE_SIZE, 1.5 * TILE_SIZE)
 DRONE_SPAWN_POS = (-DRONE_SIZE[0] // 2, -DRONE_SIZE[1] // 2)
 MINE_REACH_DIST = TILE_SIZE * 1.5
+DRONE_SHOOT_COOLDOWN = 0.2  # seconds between shots
 
 DRILL_HP_PER_PATCH = 15
 BULLETS_PER_COPPER = 5
@@ -25,7 +42,7 @@ INITIALLY_ALLOCATED_RESOURCES = {
 
 # --- drill ---
 DRILL_HEALTH = 1000
-DRILL_MAX_SPEED = TILE_SIZE * 5
+DRILL_MAX_SPEED = TILE_SIZE * 10
 DRILL_ACCELERATION = TILE_SIZE * 0.1
 DRILL_DECELERATION = TILE_SIZE * 0.2
 
@@ -49,12 +66,11 @@ ENEMY_DAMAGE_COOLDOWN_SEC = 1.5
 ENEMY_DECELERATION = TILE_SIZE * 0.1
 ENEMY_MAX_SPEED = TILE_SIZE * 3
 ENEMY_ACCELERATION = TILE_SIZE * 0.2
-ENEMY_VISION_RADIUS = TILE_SIZE * 15
+
+ENEMY_NOTICING_RADIUS = TILE_SIZE * 20
+ENEMY_LOSES_PLAYER_RADIUS = TILE_SIZE * 30
 
 ENEMY_SIZE = (TILE_SIZE * 0.8, TILE_SIZE * 0.8)
-
-ENEMY_SPAWN_PER_CAVE_RANGE = (0, 3)
-ENEMY_SPAWN_MIN_DISTANCE_FROM_CAVE_START = 15  # in tiles
 
 
 # --- combat ---
@@ -64,24 +80,19 @@ ENTITY_WEIGHT_MAP = {
     ObjectType.DRONE: 0.8,
     ObjectType.ENEMY: 0.4,
 }
-VELOCITY_LOSS_ON_HIT = 0.2  # keep 20% of velocity when hit
+VELOCITY_LOSS_ON_DAMAGE = 0.2
 PLAYER_RESPAWN_TIME = 5 # seconds
 
 
 # --- physics ---
 # multiply velocity by it every frame when collided with the wall
 VELOCITY_LOSS_ON_COLLISION = 0.75
+SOFT_COLLISION_FORCE = TILE_SIZE * 0.5
 
-
-# --- caves ---
-CAVE_SPAWN_CHANCE_BASE = 0.05
-CAVE_MIN_TILES_BETWEEN = 100
-CAVE_LENGTH_RANGE = (20, 40)
-CAVE_THICKNESS_RANGE = (1.5, 3.0)
-CAVE_MAX_ANGLE_CHANGE = 30  # degrees
-THICKNESS_CONTROL_POINTS_NUM_RANGE = (1, 3)
-
-
-
-
-
+OBJECT_TO_SIZE = {
+    ObjectType.DRILL: DRILL_SIZE,
+    ObjectType.DRONE: DRONE_SIZE,
+    ObjectType.ENEMY: ENEMY_SIZE,
+    ObjectType.PROJECTILE: PROJECTILE_SIZE,
+    ObjectType.GROUND: (TILE_SIZE, TILE_SIZE),
+}

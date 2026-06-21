@@ -12,7 +12,11 @@ def TC(x, y=None, revert=False):
     if revert: 
         mult **= -1
 
-    return (*[round(c * mult) for c in (x, y)], )
+    digits = 10
+    if revert:
+        digits = 0
+
+    return (*[round(c * mult, digits) for c in (x, y)], )
 
 
 

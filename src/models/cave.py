@@ -1,122 +1,149 @@
 import random
 import math
 import pygame as pg
-from src.settings.base import GroundMaterial
-from src.settings.balance import (
-    THICKNESS_CONTROL_POINTS_NUM_RANGE, CAVE_LENGTH_RANGE, 
-    CAVE_THICKNESS_RANGE, CAVE_MAX_ANGLE_CHANGE, ENEMY_SPAWN_PER_CAVE_RANGE,
-    ENEMY_SPAWN_MIN_DISTANCE_FROM_CAVE_START
-)
+from src.core.event_bus import EventBus
+from src.settings.cave_config import ENEMY_SPAWN_PER_TILE, GEN_MIN_TRY_DISTANCE_TILES, GEN_OFFSET_TRIES, GEN_TRY_OFFSET_SPREAD_TILES, GEN_TRY_OFFSET_TILES, MAIN_CAVE_SCALE_RANGE, MAIN_CAVE_THRESHOLD_RANGE, MAX_RECURSON_DEPTH, NOISE_START_SEARCH_TRIES, VEIN_ANGLE_RANGE, VEIN_SCALE_X_RANGE, VEIN_SCALE_Y_RANGE, VEIN_THRESHOLD_RANGE
+from src.settings.base import TILE_SIZE, GroundMaterial, EventType
+import vnoise
 
-class CaveGenerator:
-    """generate caves using random walk algorithm with variable thickness"""
-    
-    @staticmethod
-    def generate_cave(map_obj, start_tile_pos: tuple[int, int], initial_direction: pg.Vector2) -> list[tuple[int, int]]:
-        """
-        map_obj:  map class to modify
-        start_tile_pos:  (x, y) in tile coordinates
-        initial_direction:  vector representing the direction of digging
-        returns:  list of tile coordinates for enemy spawning
-        """
-        length = random.randint(*CAVE_LENGTH_RANGE)
+from src.utils.debug_collector import DebugCollector
+
+
+
+class Cave:
+    def __init__(self, map, event_bus: EventBus, debug: DebugCollector) -> None:
+        self.seed = random.random()
+        self.vn = vnoise.Noise(seed=self.seed)
+        self.offset_tile_pos = pg.Vector2(0, 0)
+        self.map = map
+        self.event_bus = event_bus
+        self.debug = debug
+
+        self.main_cave_scale = random.uniform(*MAIN_CAVE_SCALE_RANGE)
+        self.vein_scale_x = random.uniform(*VEIN_SCALE_X_RANGE)
+        self.vein_scale_y = random.uniform(*VEIN_SCALE_Y_RANGE)
+        self.vein_angle = random.uniform(*VEIN_ANGLE_RANGE)
+        self.main_cave_threshold = random.uniform(*MAIN_CAVE_THRESHOLD_RANGE)
+        self.vein_threshold = random.uniform(*VEIN_THRESHOLD_RANGE)
+
+    def generate_cave(self, tile_pos: pg.Vector2, direction: pg.Vector2):
+        self.debug.increase('cave spawn general attempts:', 1)
+
+        # find a cave start on the noise picture
+        local_start_tile_pos = self._find_noise_cave_start()
+        if local_start_tile_pos is None:
+            return False
         
-        # calculating initial angle based on movement direction
-        if initial_direction.length_squared() < 0.01:
-            angle = random.uniform(0, 360)
-        else:
-            angle = math.degrees(math.atan2(initial_direction.y, initial_direction.x))
-            # Direct it to right or left side
-            angle += random.choice((-1,1)) * 60
+        random_offset_tiles = pg.Vector2(random.uniform(-GEN_TRY_OFFSET_SPREAD_TILES, GEN_TRY_OFFSET_SPREAD_TILES), 
+            random.uniform(-GEN_TRY_OFFSET_SPREAD_TILES, GEN_TRY_OFFSET_SPREAD_TILES))
 
-        current_pos = pg.Vector2(start_tile_pos[0], start_tile_pos[1])
-        start_vec = pg.Vector2(start_tile_pos)
+        # determine a position on a map offsetting further from mined tile and trying to gen
+        for distance in range(GEN_MIN_TRY_DISTANCE_TILES, GEN_MIN_TRY_DISTANCE_TILES + GEN_TRY_OFFSET_TILES * GEN_OFFSET_TRIES, GEN_TRY_OFFSET_TILES):
+            direction.scale_to_length(distance)
+            self.offset_tile_pos = (tile_pos + direction + random_offset_tiles) // 1
+            print(f'{tile_pos} (pos) + {direction} (direction) = ')
+            print('= offset:', self.offset_tile_pos)
+
+            # generate cave tiles
+            air_tiles_set = set()
+            edge_tiles_set = set()
+            self._generate_cave_tiles_recurs(air_tiles_set, edge_tiles_set, (*local_start_tile_pos,))
+            
+            self.debug.increase('cave gen attempts:', 1)
+
+            air_tiles_set = set([(*p + self.offset_tile_pos - local_start_tile_pos,) for p in air_tiles_set])
+            edge_tiles_set = set([(*p + self.offset_tile_pos - local_start_tile_pos,) for p in edge_tiles_set])
+
+            # determine if a cave is disjoint
+            is_disjoint = self._is_cave_tile_disjoint(air_tiles_set)
+            if is_disjoint: 
+                break
+            
+            self.debug.increase('cave gen fail: disjoint', 1)
+
+        if not is_disjoint:
+            return False
+
+        if not air_tiles_set:
+            self.debug.increase('cave gen fail: no tiles', 1)
+            return False
+
+        self._spawn_enemies(air_tiles_set)
+
+        self._carve_cave(air_tiles_set, edge_tiles_set)
         
-        # set control points for thickness interpolation
-        num_control_points = random.randint(*THICKNESS_CONTROL_POINTS_NUM_RANGE)
-        # indices along the path where thickness is defined (excluding start/end)
-        if length > 2:
-            control_indices = sorted(random.sample(range(1, length - 1), min(num_control_points, length - 2)))
-        else:
-            control_indices = []
-            
-        control_indices = [0] + control_indices + [length - 1]
-        
-        thickness_map = {}
-        for idx in control_indices:
-            if idx == length - 1 or idx == 0:
-                # thin start and end
-                thickness_map[idx] = 0.8
-            else:
-                thickness_map[idx] = random.uniform(*CAVE_THICKNESS_RANGE)
+        self.debug.set('last cave spawn pos:', pg.Vector2(list(air_tiles_set)[0])*TILE_SIZE)
+        return True
 
-        potential_spawn_tiles = set()
+    def _carve_cave(self, air_tiles_set: set, edge_tiles_set: set):
+        for air_tile_pos in air_tiles_set:
+            self.map.set_raw(air_tile_pos, GroundMaterial.AIR)  
 
-        # generate the path and apply carving
-        for i in range(length):
-            # calculate interpolated thickness for this step
-            thickness = CaveGenerator._get_thickness(i, control_indices, thickness_map)
-            # carve tiles around current position
-            carved = CaveGenerator._carve_at(map_obj, current_pos, thickness)
-            # tiles for enemy spawn ENEMY_MIN_DISTANCE_FROM_CAVE_START far from player
-            if i > ENEMY_SPAWN_MIN_DISTANCE_FROM_CAVE_START:
-                potential_spawn_tiles.update(carved)
-            
-            # curving cave
-            if random.random() < 0.35:
-                # curve max by +-CAVE_MAX_ANGLE_CHANGE degrees along entire length
-                angle_change_weighted = CAVE_MAX_ANGLE_CHANGE / num_control_points
-                angle += random.uniform(-angle_change_weighted, angle_change_weighted)
-            
-            # Step forward (in tile units)
-            rad = math.radians(angle)
-            current_pos += pg.Vector2(math.cos(rad), math.sin(rad))
+        for edge_tile_pos in edge_tiles_set:
+            self.map.generate_tile_at(edge_tile_pos)
 
-        if not potential_spawn_tiles:
+    def _spawn_enemies(self, air_tiles: set):
+        air_positions = air_tiles
+        if not air_positions:
             return []
 
-        # select random number of enemies
-        num_enemies = random.randint(*ENEMY_SPAWN_PER_CAVE_RANGE)
-        num_enemies = min(num_enemies, len(potential_spawn_tiles))
+        # picking positions
+        num_enemies = int(len(air_positions) * ENEMY_SPAWN_PER_TILE)
+        num_enemies = min(num_enemies, len(air_positions))
+        spawn_positions = random.sample(list(air_positions), num_enemies)
         
-        spawn_positions = random.sample(list(potential_spawn_tiles), num_enemies)
-        return spawn_positions
+        # spawning
+        for pos in spawn_positions:
+            self.event_bus.emit(EventType.ENEMY_SPAWN, tile_pos=pg.Vector2(pos))
 
-    @staticmethod
-    def _get_thickness(step: int, control_indices: list[int], thickness_map: dict[int, float]) -> float:
-        """lerp between control points"""
-        if step in thickness_map:
-            return thickness_map[step]
-        
-        for i in range(len(control_indices) - 1):
-            idx_start = control_indices[i]
-            idx_end = control_indices[i+1]
-            if idx_start < step < idx_end:
-                t = (step - idx_start) / (idx_end - idx_start)
-                return thickness_map[idx_start] + t * (thickness_map[idx_end] - thickness_map[idx_start])
-        return 1.0
+    def _is_cave_tile_disjoint(self, tiles: set):
+        for tile_pos in tiles:
+            if self.map.get_tile_at(tile_pos) is not None:
+                return False
+        return True
 
-    @staticmethod
-    def _carve_at(map_obj, pos: pg.Vector2, thickness: float) -> list[tuple[int, int]]:
-        """
-        carves circle of AIR and puts stone borders.
-        returns:  list of tiles that were set to air
-        """
-        air_tiles = []
-        check_radius = int(math.ceil(thickness)) + 1
-        center_x, center_y = int(round(pos.x)), int(round(pos.y))
+    def _generate_cave_tiles_recurs(self, air_tiles_set: set, edge_tiles_set: set, start_tile_pos: tuple, recursion_depth: int = 0):
+        if start_tile_pos in air_tiles_set or start_tile_pos in edge_tiles_set:
+            return
+        if recursion_depth > MAX_RECURSON_DEPTH:
+            self.debug.increase('cave gen recursion limit hit:', 1)
+            edge_tiles_set.add(start_tile_pos)
+            return
+        if not self._is_cave_at_pos(pg.Vector2(start_tile_pos)):
+            edge_tiles_set.add(start_tile_pos)
+            return
+
+        air_tiles_set.add(start_tile_pos)
         
-        for dx in range(-check_radius, check_radius + 1):
-            for dy in range(-check_radius, check_radius + 1):
-                dist = math.sqrt(dx*dx + dy*dy)
-                target_pos = (center_x + dx, center_y + dy)
-                
-                if dist <= thickness:
-                    # inside cave - air
-                    map_obj.clear_tile_at(target_pos)
-                    air_tiles.append(target_pos)
-                elif dist <= thickness + 1.2:
-                    # cave wall - stone (only if it was unexplored or something else)
-                    if not map_obj.is_air(target_pos):
-                        map_obj.generate_tile_at(target_pos)
-        return air_tiles
+        # searching 4 neighs
+        for x,y in [(start_tile_pos[0] - 1, start_tile_pos[1]), 
+            (start_tile_pos[0] + 1, start_tile_pos[1]), 
+            (start_tile_pos[0], start_tile_pos[1] - 1), 
+            (start_tile_pos[0], start_tile_pos[1] + 1)]:
+                self._generate_cave_tiles_recurs(air_tiles_set, edge_tiles_set, (x, y), recursion_depth + 1)
+
+    def _find_noise_cave_start(self):
+        for _ in range(NOISE_START_SEARCH_TRIES):
+            # sample some random points on self.vn until find cave
+            x, y = random.randint(0, 100), random.randint(0, 100)
+            is_cave = self._is_cave_at_pos(pg.Vector2(x, y))
+            if is_cave:
+                return pg.Vector2(x, y)
+            self.debug.increase('cave gen noise start find attempts:', 1)
+
+        return None
+            
+    def _is_cave_at_pos(self, pos: pg.Vector2):
+        # main big caves
+        val_main = self.vn.noise2(*(pos / self.main_cave_scale))
+        
+        # long veins with rotation
+        rad = math.radians(self.vein_angle)
+        tx = (pos.x * math.cos(rad) - pos.y * math.sin(rad)) / self.vein_scale_x
+        ty = (pos.x * math.sin(rad) + pos.y * math.cos(rad)) / self.vein_scale_y
+        val_veins = self.vn.noise2(tx, ty)
+
+        if val_main > self.main_cave_threshold or val_veins > self.vein_threshold:
+            return True
+        return False
+

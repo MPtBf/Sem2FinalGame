@@ -5,7 +5,8 @@ import pygame as pg
 from src.settings.balance import MINE_REACH_DIST
 from src.models.game_object import LivingEntity
 from src.core.world_handler import WorldHandler
-from src.settings.base import KEY_TO_INTENT, TILE_SIZE, PlayerState
+from src.settings.base import KEY_TO_INTENT, TILE_SIZE, GroundMaterial, PlayerState
+from src.settings.visual import MINE_SELECTION_COLOR, MINE_SELECTION_OPACITY
 from src.settings.visual import CONTROLS_OVERLAY_FONT_SIZE, CONTROLS_TEXT, HP_BAR_FLASH_DURATION, OVERLAY_BOTTOM_MARGIN, OVERLAY_RIGHT_MARGIN, OVERLAY_BOTTOM_MARGIN, HP_BAR_BACKGROUND_COLOR, HP_BAR_COLOR_HIGH, HP_BAR_COLOR_LOW, HP_BAR_FLASH_COLOR, HP_BAR_HEIGHT, HP_BAR_OFFSET_Y, HP_BAR_SCALE_FACTOR, INTENT_TO_TEXT, OVERLAY_FONT_COLOR, INV_OVERLAY_FONT_SIZE, INVENTORY_TEXT, ITEM_TO_TEXT, OVERLAY_LEFT_MARGIN, OVERLAY_LINES_MARGIN, PLAYER_RESPAWN_FONT_COLOR, PLAYER_RESPAWN_FONT_SIZE, PLAYER_RESPAWN_TEXT, SECONDS_TEXT, UI_FONT_FAMILY
 from src.views.camera import Camera
 from src.utils.misc import calc_drone_mine_pos
@@ -37,8 +38,19 @@ class UIManager:
     def _render_player_mine_cursor(self, world_handler: WorldHandler, camera: Camera):
         if world_handler.player_state != PlayerState.ALIVE:
             return
-        mine_pos = calc_drone_mine_pos(world_handler.drone, camera)
-        pg.draw.circle(self.screen, (255,0,0), mine_pos - camera.offset, 3)
+        # calculate world position of mining target
+        mine_world_pos = calc_drone_mine_pos(world_handler.drone, camera)
+        # tile coordinates
+        tile_coords = (int(mine_world_pos.x // TILE_SIZE), int(mine_world_pos.y // TILE_SIZE))
+        tile = world_handler.map.get_tile_at(tile_coords)
+        if tile is None or tile.ground_material != GroundMaterial.AIR:
+            # screen position of tile top‑left
+            screen_pos = pg.Vector2(tile_coords) * TILE_SIZE - camera.offset
+            # create semi‑transparent overlay surface
+            overlay = pg.Surface((TILE_SIZE, TILE_SIZE), pg.SRCALPHA)
+            overlay.fill((*MINE_SELECTION_COLOR, MINE_SELECTION_OPACITY))
+            self.screen.blit(overlay, (screen_pos.x, screen_pos.y))
+        pg.draw.circle(self.screen, (255,0,0), mine_world_pos - camera.offset, 3)
 
     def _render_health_bars(self, living_entities: list[LivingEntity]):
         for entity in living_entities:
@@ -60,7 +72,7 @@ class UIManager:
             pg.draw.rect(self.screen, HP_BAR_BACKGROUND_COLOR, (screen_pos.x, screen_pos.y, bar_width, HP_BAR_HEIGHT))
             
             # determine bar color
-            if entity._time_drom_last_damage < HP_BAR_FLASH_DURATION:
+            if entity.time_drom_last_damage < HP_BAR_FLASH_DURATION:
                 # white flash on damage
                 bar_color = HP_BAR_FLASH_COLOR
             else:

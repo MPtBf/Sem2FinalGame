@@ -22,8 +22,8 @@ class Camera:
         self.offset.y = target_entity.pos.y + target_entity.size.y / 2 - self.size[1] / 2
 
     def is_obj_in_view(self, object: GameObject):
-        return self._rect.colliderect(object.rect)
+        return self.rect.colliderect(object.rect)
     
     @property
-    def _rect(self):
+    def rect(self):
         return pg.Rect(self.offset.x, self.offset.y, self.size.x, self.size.y)

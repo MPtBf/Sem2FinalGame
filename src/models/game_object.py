@@ -1,15 +1,16 @@
+from abc import ABC, abstractmethod
+
 import pygame as pg
 from src.settings.base import ObjectType
-from src.settings.balance import ENTITY_WEIGHT_MAP, KNOCKBACK_FORCE, VELOCITY_LOSS_ON_HIT
+from src.settings.balance import ENTITY_WEIGHT_MAP, KNOCKBACK_FORCE, VELOCITY_LOSS_ON_DAMAGE
 
 
-class GameObject:
+class GameObject(ABC):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType):
         self._pos = pg.Vector2(pos)
         self._size = pg.Vector2(size)
         self._rect = pg.Rect(self._pos.x, self._pos.y, self._size.x, self._size.y)
         self.object_type = object_type
-        # self.is_visible = True
     
     @property
     def pos(self):
@@ -33,6 +34,29 @@ class GameObject:
     def rect(self):
         return self._rect
 
+
+class DynamicObject(GameObject):
+    def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, velocity: pg.Vector2):
+        super().__init__(pos, size, object_type)
+        self._velocity = velocity
+        self._acceleration = pg.Vector2(0, 0)
+
+    @property
+    def velocity(self):
+        return self._velocity
+    
+    @property
+    def acceleration(self):
+        return self._acceleration
+    
+    def move_x(self, dt):
+        self._pos.x += self._velocity.x * dt
+        self.sync_rect_to_pos()
+
+    def move_y(self, dt):
+        self._pos.y += self._velocity.y * dt
+        self.sync_rect_to_pos()
+
     def sync_rect_to_pos(self):
         """updates rect integer coordinates from float pos"""
         self._rect.x = round(self._pos.x)
@@ -44,57 +68,45 @@ class GameObject:
         self._pos.x = self._rect.x
         self._pos.y = self._rect.y
 
-    def delete(self):
-        ...
-
-
-class DynamicObject(GameObject):
-    def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, velocity: pg.Vector2):
-        super().__init__(pos, size, object_type)
-        self.velocity = velocity
-    
-    def move_x(self, dt):
-        self._pos.x += self.velocity.x * dt
-        self.sync_rect_to_pos()
-
-    def move_y(self, dt):
-        self._pos.y += self.velocity.y * dt
-        self.sync_rect_to_pos()
-
+    @abstractmethod
     def update_logic(self, dt, world, intents=None):
         """internal logic:  ai, input handling, velocity updates"""
-        ...
+        pass
 
     def after_move(self, axis, world):
         """called after each axis movement inside collision handling"""
-        ...
+        pass
 
 class LivingEntity(DynamicObject):
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, health):
         super().__init__(pos, size, object_type, velocity=pg.Vector2(0,0))
         self.max_health = health
         self.health = health
-        self._time_drom_last_damage = float('inf')
+        self.time_drom_last_damage = float('inf')
     
     def update_logic(self, dt, world, intents=None):
         super().update_logic(dt, world, intents)
-        self._time_drom_last_damage += dt
+        self.time_drom_last_damage += dt
     
     def take_damage(self, amount, knockback_direction: pg.Vector2 = None):
+        self._velocity *= (1 - VELOCITY_LOSS_ON_DAMAGE)
         self.health -= amount
-        self._time_drom_last_damage = 0
-        self._apply_knockback(knockback_direction)
+        self.time_drom_last_damage = 0
+        self.apply_knockback(knockback_direction)
         if self.health <= 0:
             self.die()
 
-    def _apply_knockback(self, knockback_direction):
+    def apply_knockback(self, knockback_direction, force=None):
+        if force is None:
+            force = KNOCKBACK_FORCE
+
         if knockback_direction is not None and knockback_direction.length() > 0:
-            self.velocity *= VELOCITY_LOSS_ON_HIT
-            kb_mult = KNOCKBACK_FORCE / ENTITY_WEIGHT_MAP[self.object_type]  # more weight -> less knockback
-            self.velocity += knockback_direction.normalize() * kb_mult
+            kb_mult = force / ENTITY_WEIGHT_MAP[self.object_type]  # more weight -> less knockback
+            self._velocity += knockback_direction.normalize() * kb_mult
 
     def is_alive(self):
         return self.health > 0
 
+    @abstractmethod
     def die(self):
         pass

@@ -2,21 +2,27 @@
 
 from enum import Enum, auto
 import random
+from src.settings.balance import ENTITY_TO_MINE_EFFICIENCY, MINE_TIME_SPREAD
 from src.settings.base import (
     MATERIAL_TO_ITEM_MAP, SPAWN_SPACE_OFFSET_TILES, SPAWN_SPACE_RADIUS_TILES, TILE_SIZE, GroundMaterial
 )
-from src.settings.balance import CAVE_SPAWN_CHANCE_BASE, CAVE_MIN_TILES_BETWEEN
+from src.settings.cave_config import SPAWN_CHANCE_BASE, MIN_TILES_BETWEEN
 from src.core.event_bus import EventBus, EventType
-from src.models.game_object import GameObject, ObjectType
+from src.models.game_object import GameObject, LivingEntity, ObjectType
 import pygame as pg
 from src.utils.shortcuts import TC
-from src.models.cave import CaveGenerator
+from src.models.cave import Cave
+from src.utils.debug_collector import DebugCollector
+from src.settings.balance import MATERIAL_TO_MINE_TIME
 
 
 class Tile(GameObject):
     def __init__(self, pos: pg.Vector2, ground_material: GroundMaterial):
         super().__init__(pos, pg.Vector2(TILE_SIZE, TILE_SIZE), ObjectType.GROUND)
         self.ground_material = ground_material
+        # time to mine the tile
+        spread = random.uniform(-MINE_TIME_SPREAD/2, MINE_TIME_SPREAD/2)
+        self.durability = MATERIAL_TO_MINE_TIME.get(ground_material, 100) + spread
 
     def destroy(self):
         self.ground_material = GroundMaterial.AIR
@@ -28,11 +34,12 @@ class Tile(GameObject):
 
 
 class Map:
-    def __init__(self, event_bus: EventBus) -> None:
+    def __init__(self, event_bus: EventBus, debug: DebugCollector) -> None:
         # no xy pair - unexplored area
         self.event_bus = event_bus
+        self.debug = debug
         self._tiles: dict[tuple[int, int], Tile] = {}
-        self._tiles_mined_since_last_cave = 0
+        self.tiles_mined_since_last_cave = 0
 
         self._init_start_zone()
 
@@ -55,6 +62,8 @@ class Map:
     def _get_generated_tile_material(self, tile_pos):
         if random.random() > 0.03:
             return GroundMaterial.STONE
+        if random.random() > 0.5:
+            return GroundMaterial.HARD_STONE
         return GroundMaterial.COPPER
 
     def get_tile_at(self, tile_pos):
@@ -79,7 +88,7 @@ class Map:
                     tiles.append(tile)
         return tiles
 
-    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2 = pg.Vector2(0, 0), drone=None):
+    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2, dt: float, entity: LivingEntity):
         tile_pos = (*tile_pos_vec,)
 
         # if trying to mine unexplored area, explore first
@@ -88,23 +97,37 @@ class Map:
             self.generate_tile_at(tile_pos)
             tile = self._tiles.get(tile_pos)
 
-        # change material to air if not already air
+        # if tile already air, nothing to mine
         if tile.ground_material == GroundMaterial.AIR:
             return
-        if drone is not None:
-            self._handle_item_pickup(drone, tile.ground_material)
+
+        # reduce durability based on efficiency and dt
+        efficiency = ENTITY_TO_MINE_EFFICIENCY[entity.object_type]
+        if dt > 0:
+            tile.durability -= dt * efficiency
+            if tile.durability > 0:
+                # not yet mined completely
+                return
+            # durability exhausted, treat as mined
+            tile.durability = 0
+
+        if entity.object_type == ObjectType.DRONE:
+            self._handle_item_pickup(entity, tile.ground_material)
         tile.destroy()
 
-        self._tiles_mined_since_last_cave += 1
+        self.tiles_mined_since_last_cave += 1
 
         # spawn caves with pseudo-random
-        if self._tiles_mined_since_last_cave >= CAVE_MIN_TILES_BETWEEN:
-            chance = CAVE_SPAWN_CHANCE_BASE
+        if self.tiles_mined_since_last_cave >= MIN_TILES_BETWEEN:
+            chance = SPAWN_CHANCE_BASE
             if random.random() < chance:
-                spawn_positions = CaveGenerator.generate_cave(self, tile_pos, direction)
-                if spawn_positions:
-                    self.event_bus.emit(EventType.ENEMY_SPAWN, positions=spawn_positions)
-                self._tiles_mined_since_last_cave = 0
+                cave = Cave(self, self.event_bus, self.debug)
+                success = cave.generate_cave(pg.Vector2(tile_pos), direction)
+                self.tiles_mined_since_last_cave = 0
+                if success:
+                    self.debug.increase('cave spawn general successes:', 1)
+                else:
+                    self.debug.increase('cave spawn general failures:', 1)
 
         # generate neighbors for "unexplored" area tiles
         self._generate_neighbours(tile_pos)
@@ -132,10 +155,8 @@ class Map:
             if self._tiles.get(neigh) is None:
                 self.generate_tile_at(neigh)
 
-    def is_air(self, tile_pos: tuple[int, int]) -> bool:
-        """Checks if a tile at given position is Air."""
-        tile = self._tiles.get(tile_pos)
-        return tile and tile.ground_material == GroundMaterial.AIR
+    def set_raw(self, tile_pos, material: GroundMaterial):
+        self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
 
     def generate_tile_at(self, tile_pos: tuple):
         material = self._get_generated_tile_material(tile_pos)
