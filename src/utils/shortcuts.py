@@ -1,8 +1,8 @@
 from src.settings.base import TILE_SIZE
 
-def TC(x, y=None, revert=False):
-    """multiply tile pos by TILE_SIZE to get coordinates
-    (Tile pos -> Coordinates)"""
+def TC(x, y=None, revert=False) -> tuple:
+    """трансформация позиции тайла в мировые координаты
+    (Tile pos to world Coords)"""
     # handling a thing if someone entered tuple of x,y instead of x
     if y is None:
         x, y = x

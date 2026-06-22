@@ -1,21 +1,22 @@
 # core config: window, FPS, tiles, camera, debug, types
 
 from enum import Enum, auto
+import random
 import pygame as pg
 from dataclasses import dataclass
 
 
 
 # --- drawing --- 
-TILE_SIZE = 20
+TILE_SIZE = 50
 CAMERA_ZOOM_BASE = 1.0
 CAMERA_ZOOM_TILES = 15
 
 
 # --- window ---
-IS_FULLSCREEN = True
-WINDOW_WIDTH = 1200
-WINDOW_HEIGHT = 700
+IS_FULLSCREEN = False
+WINDOW_WIDTH = 1536
+WINDOW_HEIGHT = 864 - 60
 FPS = 60
 
 
@@ -24,6 +25,10 @@ DEBUG_ENABLED = True
 DEBUG_SHOW_HITBOXES = False
 DEBUG_SHOW_FPS = True
 DEBUG_SHOW_STATS = True
+
+SPEED_MULTIPLIER = 5.0
+SEED = 2
+random.seed(SEED)
 
 
 # --- world --- 
@@ -59,6 +64,7 @@ class Intent(Enum):
     MINE = auto()
     HEAL_DRILL = auto()
     TOGGLE_DRILL = auto()
+    SPEED_UP = auto()
 
     PAUSE = auto()
 
@@ -115,6 +121,7 @@ MATERIAL_TO_ITEM_MAP = {
 
 # --- input mapping ---
 KEY_TO_INTENT = {
+    pg.K_r: Intent.SPEED_UP,
     pg.K_w: Intent.MOVE_UP,
     pg.K_s: Intent.MOVE_DOWN,
     pg.K_a: Intent.MOVE_LEFT,

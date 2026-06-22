@@ -6,6 +6,8 @@ from src.settings.balance import ENTITY_WEIGHT_MAP, KNOCKBACK_FORCE, VELOCITY_LO
 
 
 class GameObject(ABC):
+    """базовый класс для всех объектов в игре"""
+
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType):
         self._pos = pg.Vector2(pos)
         self._size = pg.Vector2(size)
@@ -36,6 +38,8 @@ class GameObject(ABC):
 
 
 class DynamicObject(GameObject):
+    """базовый класс для всех подвижных объектов в игре. Скорость, ускорение"""
+    
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, velocity: pg.Vector2):
         super().__init__(pos, size, object_type)
         self._velocity = velocity
@@ -57,46 +61,48 @@ class DynamicObject(GameObject):
         self._pos.y += self._velocity.y * dt
         self.sync_rect_to_pos()
 
-    def sync_rect_to_pos(self):
-        """updates rect integer coordinates from float pos"""
+    def sync_rect_to_pos(self) -> None:
+        """Обновляет rect целые координаты из дробного pos вектора"""
         self._rect.x = round(self._pos.x)
         self._rect.y = round(self._pos.y)
 
-    def sync_pos_to_rect(self):
-        """updates float pos from rect integer coordinates
-        (after collision)"""
+    def sync_pos_to_rect(self) -> None:
+        """Обновляет pos вектор из целых координат rect"""
         self._pos.x = self._rect.x
         self._pos.y = self._rect.y
 
     @abstractmethod
     def update_logic(self, dt, world, intents=None):
-        """internal logic:  ai, input handling, velocity updates"""
+        """внутрянняя логика:  ИИ, обновления интентов, обновления скорости"""
         pass
 
     def after_move(self, axis, world):
-        """called after each axis movement inside collision handling"""
+        """вызывается после каждого перемещения по оси внутри обработки столкновений"""
         pass
 
 class LivingEntity(DynamicObject):
+    """базовый класс для всех живых сущностей в игре. Урон, отдача"""
     def __init__(self, pos: pg.Vector2, size: pg.Vector2, object_type: ObjectType, health):
         super().__init__(pos, size, object_type, velocity=pg.Vector2(0,0))
         self.max_health = health
         self.health = health
-        self.time_drom_last_damage = float('inf')
+        self.time_from_last_damage = float('inf')
     
     def update_logic(self, dt, world, intents=None):
         super().update_logic(dt, world, intents)
-        self.time_drom_last_damage += dt
+        self.time_from_last_damage += dt
     
     def take_damage(self, amount, knockback_direction: pg.Vector2 = None):
+        """получение урон. Обновляет скорость, здоровье, применяет отдачу"""
         self._velocity *= (1 - VELOCITY_LOSS_ON_DAMAGE)
         self.health -= amount
-        self.time_drom_last_damage = 0
+        self.time_from_last_damage = 0
         self.apply_knockback(knockback_direction)
         if self.health <= 0:
             self.die()
 
     def apply_knockback(self, knockback_direction, force=None):
+        """принимает отдачу. Обновляет скорость"""
         if force is None:
             force = KNOCKBACK_FORCE
 

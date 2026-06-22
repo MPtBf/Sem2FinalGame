@@ -3,7 +3,7 @@
 
 import pygame as pg
 from enum import Enum, auto
-from .base import TILE_SIZE, GroundMaterial, Intent, ItemType, ObjectType
+from .base import SPEED_MULTIPLIER, TILE_SIZE, GroundMaterial, Intent, ItemType, ObjectType
 
 
 # --- z-index ---
@@ -17,7 +17,7 @@ Z_INDEX = {
 
 
 # --- health bar ---
-HP_BAR_HEIGHT = 2
+HP_BAR_HEIGHT = 5
 HP_BAR_OFFSET_Y = 8
 HP_BAR_SCALE_FACTOR = 0.15
 HP_BAR_BACKGROUND_COLOR = (0, 0, 0)
@@ -63,6 +63,7 @@ INTENT_TO_TEXT = {
     Intent.HEAL_DRILL: 'Починка бура',
     Intent.TOGGLE_DRILL: 'Вкл/выкл движения бура',
 
+    Intent.SPEED_UP: f'Ускорить игру в {SPEED_MULTIPLIER:.1f} раз',
     Intent.PAUSE: 'Пауза',
 }
 

@@ -5,12 +5,13 @@ from src.views.camera import Camera
 
 
 class DebugRenderer:
-    
+    """отображение информации из DebugCollector на экране"""
     def __init__(self):
         self._font = pg.font.Font(None, 24)
         self._small_font = pg.font.Font(None, 18)
     
-    def render(self, screen: pg.Surface, debug: DebugCollector, camera, entities: list):
+    def render(self, screen: pg.Surface, debug: DebugCollector, camera: Camera, entities: list) -> None:
+        """отображает информацию из DebugCollector на экране"""
         if DEBUG_SHOW_HITBOXES:
             self._draw_hitboxes(screen, camera, entities)
         

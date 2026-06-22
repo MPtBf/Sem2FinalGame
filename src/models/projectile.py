@@ -5,6 +5,7 @@ from src.settings.base import ProjectileOwner
 
 
 class Projectile(DynamicObject):
+    """класс пули. Обработка полёта"""
     def __init__(self, pos: pg.Vector2, direction: pg.Vector2, owner_type: ProjectileOwner, shooter_velocity: pg.Vector2 = None):
         # calculating velocity to inherit partly from shooter
         base = direction.normalize() * PROJECTILE_SPEED if direction.length() > 0 else pg.Vector2(1, 0) * PROJECTILE_SPEED
@@ -17,10 +18,11 @@ class Projectile(DynamicObject):
         self.alive = True
         self._lifetime = PROJECTILE_LIFETIME
 
-    def update_logic(self, dt, world, intents=None):
+    def update_logic(self, dt, world, intents=None) -> None:
+        """обновляет логику пули. Уничтожает, если истекло время существования"""
         self._lifetime -= dt
         if self._lifetime <= 0:
             self.die()
 
-    def die(self):
+    def die(self) -> None:
         self.alive = False

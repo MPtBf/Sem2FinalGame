@@ -4,13 +4,14 @@ import heapq
 from src.settings.base import GroundMaterial
 
 
-def _heuristic(a, b):
-    # Используем Манхэттенское расстояние для сетки без диагоналей
+def _heuristic(a: tuple[int,int], b: tuple[int,int]) -> float:
+    """вычисляет манхеттенское расстояние между двумя точками"""
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def _reconstruct_path(came_from, start, end):
-    """Вспомогательная функция для сборки пути от старта до конечной точки."""
+def _reconstruct_path(came_from: dict[tuple[int,int], tuple[int,int]], start: tuple[int,int], 
+    end: tuple[int,int]) -> list[tuple[int,int]]:
+    """вспомогательная функция для сборки пути от старта до конечной точки"""
     path = []
     current = end
     while current in came_from:
@@ -20,7 +21,10 @@ def _reconstruct_path(came_from, start, end):
     return path[::-1]  # Разворачиваем путь, чтобы он шел от старта
 
 
-def find_path(tiles, start, goal):
+def find_path(tiles, start, goal) -> list[tuple[int,int]]:
+    """находит кратчайший путь от старта до конечной точки, если такой существует. 
+    Иначе находит путь к  ближайшей точку
+    returns: список координат точек пути"""
     if not start or not goal:
         return None
 
@@ -64,7 +68,7 @@ def find_path(tiles, start, goal):
             neighbor = (current[0] + dx, current[1] + dy)
 
             # Пропускаем стены
-            if tiles.get(neighbor) != GroundMaterial.AIR:
+            if tiles.get(neighbor) and tiles.get(neighbor).ground_material != GroundMaterial.AIR:
                 continue
 
             # Стоимость шага равна 1

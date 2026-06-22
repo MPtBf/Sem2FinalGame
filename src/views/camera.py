@@ -3,25 +3,30 @@ from src.settings.base import *
 import pygame as pg
 
 class Camera:
+    """камера. Рассчёт смещения"""
     def __init__(self, screen, size: pg.Vector2):
         self.screen = screen
         self.offset = pg.Vector2(0, 0)
         self.size = size
 
-    def apply(self, target_pos):
+    def apply(self, target_pos: pg.Vector2) -> pg.Vector2:
+        """применяет смещение к вектору"""
         return target_pos - self.offset
     
     def world_to_screen_rect(self, world_rect: pg.Rect) -> pg.Rect:
+        """преобразует мировые координаты прямоугольника world_rect в позицию прямоугольника на экране"""
         # converts world coordinates to screen position
         screen_pos = self.apply(pg.Vector2(world_rect.x, world_rect.y))
         return pg.Rect(screen_pos.x, screen_pos.y, world_rect.width, world_rect.height)
 
-    def update(self, target_entity):
+    def update(self, target_entity: GameObject) -> None:
+        """обновляет смещение камеры, чтобы следить за целевым объектом"""
         # use float position for smooth tracking
         self.offset.x = target_entity.pos.x + target_entity.size.x / 2 - self.size[0] / 2
         self.offset.y = target_entity.pos.y + target_entity.size.y / 2 - self.size[1] / 2
 
-    def is_obj_in_view(self, object: GameObject):
+    def is_obj_in_view(self, object: GameObject) -> bool:
+        """проверяет, находится ли объект object в видимом области камеры"""
         return self.rect.colliderect(object.rect)
     
     @property

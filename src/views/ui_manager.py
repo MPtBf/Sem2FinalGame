@@ -12,34 +12,28 @@ from src.views.camera import Camera
 from src.utils.misc import calc_drone_mine_pos
 
 
-
-class Button:
-    def __init__(self, pos, size, text) -> None:
-        self.pos = pos
-        self.size = size
-        self.text = text
-
-    def update(self, ):
-        ...
-
-
 class UIManager:
-    def __init__(self, screen, camera) -> None:
+    """менеджер интерфейса пользователя"""
+    def __init__(self, screen, camera: Camera):
         self.screen = screen
         self.camera = camera
         self.inv_font = pg.font.SysFont(UI_FONT_FAMILY, INV_OVERLAY_FONT_SIZE)
         self.controls_font = pg.font.SysFont(UI_FONT_FAMILY, CONTROLS_OVERLAY_FONT_SIZE)
 
-    def update(self):
+    def update(self) -> None:
+        """обработка позиции мыши и нажатия на кнопки"""
         # get mouse pos
         # check buttons for clicks  & emit
         ...
 
-    def _render_player_mine_cursor(self, world_handler: WorldHandler, camera: Camera):
+    def _render_player_mine_cursor(self, world_handler: WorldHandler, camera: Camera) -> None:
+        """рисует оверлей выделенного тайла игрока"""
         if world_handler.player_state != PlayerState.ALIVE:
             return
         # calculate world position of mining target
         mine_world_pos = calc_drone_mine_pos(world_handler.drone, camera)
+        if mine_world_pos is None:
+            return
         # tile coordinates
         tile_coords = (int(mine_world_pos.x // TILE_SIZE), int(mine_world_pos.y // TILE_SIZE))
         tile = world_handler.map.get_tile_at(tile_coords)
@@ -52,7 +46,8 @@ class UIManager:
             self.screen.blit(overlay, (screen_pos.x, screen_pos.y))
         pg.draw.circle(self.screen, (255,0,0), mine_world_pos - camera.offset, 3)
 
-    def _render_health_bars(self, living_entities: list[LivingEntity]):
+    def _render_health_bars(self, living_entities: list[LivingEntity]) -> None:
+        """рисует полоски здоровья всех живых сущностей"""
         for entity in living_entities:
             if not self.camera.is_obj_in_view(entity):
                 continue
@@ -72,7 +67,7 @@ class UIManager:
             pg.draw.rect(self.screen, HP_BAR_BACKGROUND_COLOR, (screen_pos.x, screen_pos.y, bar_width, HP_BAR_HEIGHT))
             
             # determine bar color
-            if entity.time_drom_last_damage < HP_BAR_FLASH_DURATION:
+            if entity.time_from_last_damage < HP_BAR_FLASH_DURATION:
                 # white flash on damage
                 bar_color = HP_BAR_FLASH_COLOR
             else:
@@ -97,13 +92,15 @@ class UIManager:
         if is_paused:
             self._render_pause_text()
 
-    def _render_pause_text(self):
+    def _render_pause_text(self) -> None:
+        """рисует текст паузы"""
         font = pg.font.SysFont(UI_FONT_FAMILY, 48)
         text_surface = font.render('Пауза. Нажмите P, чтобы продолжить', True, (255, 255, 255))
         text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
         self.screen.blit(text_surface, text_rect)
 
-    def _render_hotkeys(self, world: WorldHandler):
+    def _render_hotkeys(self, world: WorldHandler) -> None:
+        """рисует тексты кнопок управления"""
         texts = []
         for key, intent in KEY_TO_INTENT.items():
             text = INTENT_TO_TEXT[intent]
@@ -117,7 +114,8 @@ class UIManager:
             text_rect = text_surface.get_rect(bottomright=(self.screen.get_width() - OVERLAY_RIGHT_MARGIN, self.screen.get_height() - OVERLAY_BOTTOM_MARGIN - (OVERLAY_LINES_MARGIN + CONTROLS_OVERLAY_FONT_SIZE) * i))
             self.screen.blit(text_surface, text_rect)
 
-    def _render_player_inventory(self, world: WorldHandler):
+    def _render_player_inventory(self, world: WorldHandler) -> None:
+        """рисует инвентарь игрока"""
         texts = []
         for item_type, count in world.drone.inventory.items():
             texts.append(f'{ITEM_TO_TEXT[item_type]}: {round(count,1)}')
@@ -129,7 +127,8 @@ class UIManager:
             text_rect = text_surface.get_rect(topleft=(OVERLAY_LEFT_MARGIN, self.screen.get_height() - OVERLAY_BOTTOM_MARGIN - (OVERLAY_LINES_MARGIN + INV_OVERLAY_FONT_SIZE) * i))
             self.screen.blit(text_surface, text_rect)
 
-    def _render_player_respawn_text(self, world: WorldHandler):
+    def _render_player_respawn_text(self, world: WorldHandler) -> None:
+        """рисует текст респавна игрока"""
         if world.player_state == PlayerState.RESPAWNING:
             unit_name = SECONDS_TEXT
             respawns_in_int = ceil(world.player_respawns_in)

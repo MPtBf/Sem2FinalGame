@@ -18,6 +18,7 @@ from src.utils.perlin_noise import PerlinNoise
 
 
 class Tile(GameObject):
+    """тайл карты. Материал, прочность"""
     def __init__(self, pos: pg.Vector2, ground_material: GroundMaterial):
         super().__init__(pos, pg.Vector2(TILE_SIZE, TILE_SIZE), ObjectType.GROUND)
         self.ground_material = ground_material
@@ -26,6 +27,7 @@ class Tile(GameObject):
         self.durability = MATERIAL_TO_MINE_TIME.get(ground_material, 100) + spread
 
     def destroy(self):
+        """разрушает тайл. Изменяет материал на AIR"""
         self.ground_material = GroundMaterial.AIR
 
     @property
@@ -35,6 +37,7 @@ class Tile(GameObject):
 
 
 class Map:
+    """карта. Массив тайлов, обработка добычи, генерации карты"""
     def __init__(self, event_bus: EventBus, debug: DebugCollector) -> None:
         # no xy pair - unexplored area
         self.event_bus = event_bus
@@ -47,18 +50,21 @@ class Map:
 
         self._init_start_zone()
 
-    def _get_generated_copper(self, tile_pos):
+    def _get_generated_copper(self, tile_pos) -> bool:
+        """проверяет, сгенерировать ли тайл сopper"""
         noise_pos = tile_pos[0] / COPPER_NOISE_SIZE, tile_pos[1] / COPPER_NOISE_SIZE
         val = self._vn.noise(*noise_pos)
         return val > COPPER_NOISE_THRESHOLD
 
-    def _get_generated_hard_stone(self, tile_pos):
+    def _get_generated_hard_stone(self, tile_pos) -> bool:
+        """проверяет, сгенерировать ли тайл hard stone"""
         noise_pos = tile_pos[0] / HARD_STONE_NOISE_SIZE, tile_pos[1] / HARD_STONE_NOISE_SIZE
         val = self._vn.noise(*noise_pos)
         return val > HARD_STONE_NOISE_THRESHOLD
 
-    def _init_start_zone(self):
-        
+    def _init_start_zone(self) -> None:
+        """инициализирует начальный зону спавна. Генерирует круг пустых тайлов с тонким стенами"""
+
         rad = SPAWN_SPACE_RADIUS_TILES
         off_x, off_y = SPAWN_SPACE_OFFSET_TILES
         safe_air_radius = rad + 2
@@ -73,21 +79,29 @@ class Map:
                     self._tiles[(x,y)] = Tile(
                         pg.Vector2(*TC(x, y)), material)
 
-    def _get_generated_tile_material(self, tile_pos):
+    def _get_generated_tile_material(self, tile_pos) -> GroundMaterial:
+        """решает, сгенерировать ли тайл сopper, hard stone или stone в заданной точке"""
         if self._get_generated_copper(tile_pos):
             return GroundMaterial.COPPER
         if self._get_generated_hard_stone(tile_pos):
             return GroundMaterial.HARD_STONE
         return GroundMaterial.STONE
 
-    def get_tile_at(self, tile_pos):
+    def get_tile_at(self, tile_pos) -> Tile:
+        """возвращает тайл в заданной точке. Если тайл не существует, возвращает None"""
         return self._tiles.get((*tile_pos,))
         
-    def get_tiles_list(self):
+    def get_tiles_list(self) -> list[Tile]:
+        """возвращает список всех тайлов на карте в виде списка"""
         tiles_list = list(self._tiles.values())
         return [v for v in tiles_list if v is not None]
 
+    @property
+    def tiles(self):
+        return self._tiles
+
     def get_tiles_in_rect(self, rect: pg.Rect) -> list[Tile]:
+        """возвращает список всех тайлов в заданной прямоугольнике"""
         # rect boundaries to tile coordinats
         start_x = rect.left // TILE_SIZE
         end_x = rect.right // TILE_SIZE
@@ -102,7 +116,8 @@ class Map:
                     tiles.append(tile)
         return tiles
 
-    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2, dt: float, entity: LivingEntity):
+    def mine(self, tile_pos_vec: pg.Vector2, direction: pg.Vector2, dt: float, entity: LivingEntity) -> None:
+        """добыча тайла в заданной точке. Прогресс поломки, генерация новой области, генерация пещер"""
         tile_pos = (*tile_pos_vec,)
 
         # if trying to mine unexplored area, explore first
@@ -146,33 +161,26 @@ class Map:
         # generate neighbors for "unexplored" area tiles
         self._generate_neighbours(tile_pos)
 
-    def _handle_item_pickup(self, drone, material: GroundMaterial):
+    def _handle_item_pickup(self, drone, material: GroundMaterial) -> None:
+        """обработка сбора предмета из добытого тайла. Даёт дрону предмет"""
         if material not in MATERIAL_TO_ITEM_MAP.keys():
             return
         item_type = MATERIAL_TO_ITEM_MAP[material]
         drone.inventory[item_type] += 1
 
-    def clear_tile_at(self, tile_pos: tuple[int,int]):
-        material = GroundMaterial.AIR
-        existing = self._tiles.get(tile_pos)
-        if existing:
-            if existing.ground_material == material:
-                return
-            existing.ground_material = material
-        else:
-            self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
-        self._generate_neighbours(tile_pos)
-
-    def _generate_neighbours(self, tile_pos):
+    def _generate_neighbours(self, tile_pos: tuple[int,int]) -> None:
+        """генерация соседних тайлов вокруг заданной позиции"""
         for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
             neigh = (tile_pos[0] + dx, tile_pos[1] + dy)
             if self._tiles.get(neigh) is None:
                 self.generate_tile_at(neigh)
 
-    def set_raw(self, tile_pos, material: GroundMaterial):
+    def set_raw(self, tile_pos: tuple[int,int], material: GroundMaterial) -> None:
+        """устанавливает тайл в заданной позиции с заданным материалом без генерации соседей"""
         self._tiles[tile_pos] = Tile(pg.Vector2(*TC(tile_pos)), material)
 
-    def generate_tile_at(self, tile_pos: tuple):
+    def generate_tile_at(self, tile_pos: tuple[int,int]) -> None:
+        """генерирует тайл в заданной позиции. Решает, какой материал установить"""
         material = self._get_generated_tile_material(tile_pos)
         existing = self._tiles.get(tile_pos)
         if existing:

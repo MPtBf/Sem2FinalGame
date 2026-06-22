@@ -4,7 +4,11 @@ from src.utils.misc import dict_key_from_value
 
 
 class InputHandler:
+    """класс обработчика ввода пользователя, преобразование в интенты"""
+
     def get_intents(self, events: list[pg.event.Event], camera, drone) -> dict[Intent, any]:
+        """получение списка интентов из списка событий pygame.
+        returns: словарь интентов, где ключ - интент, значение - payload"""
         intents = {intent: None for key, intent in KEY_TO_INTENT.items() if pg.key.get_pressed()[key]}
 
         # continuous mining while left mouse button is held down

@@ -11,6 +11,7 @@ from src.core.event_bus import EventBus, EventType
 
 
 class Drone(LivingEntity):
+    """дрон. Игрок"""
     def __init__(self, pos: pg.Vector2, debug):
         super().__init__(pos, pg.Vector2(*DRONE_SIZE), ObjectType.DRONE, DRONE_HEALTH)
         self.inventory = {item: 0 for item in ItemType}
@@ -28,7 +29,8 @@ class Drone(LivingEntity):
             Intent.HEAL_DRILL: self.heal_drill,
         }
 
-    def update_logic(self, dt, world, intents=None):
+    def update_logic(self, dt: float, world, intents=None) -> None:
+        """обновление логики игрока - обработка интентов, обновление физики"""
         if not self.is_alive():
             return
 
@@ -43,7 +45,8 @@ class Drone(LivingEntity):
         
         self.debug.set('player pos', (*self.pos,))
 
-    def _handle_intents(self, intents: dict, world):
+    def _handle_intents(self, intents: dict, world) -> None:
+        """обработка интентов. Обновляет скорость и действия игрока."""
         # getting desired acceleration frm intents
         desired_acc = pg.Vector2(0, 0)
         desired_acc.x = sum(self.move_x_map.get(intent, 0) for intent in intents)
@@ -70,7 +73,8 @@ class Drone(LivingEntity):
         if Intent.HEAL_DRILL not in intents.keys():
             self.is_holding_heal = False
 
-    def _update_physics(self):
+    def _update_physics(self) -> None:
+        """обновление физики игрока - применение скорости, обреание до максимума"""
         # updating velocity
         self._velocity += self._acceleration
         # preventing infinite speed by nulling acceleration
@@ -78,7 +82,8 @@ class Drone(LivingEntity):
             self._velocity.normalize_ip()
             self._velocity *= DRONE_MAX_SPEED
 
-    def shoot(self, payload: ShootIntent, *args):
+    def shoot(self, payload: ShootIntent, *args) -> None:
+        """стрельба. Отправляет событие PLAYER_SHOOT, если не в cooldown"""
         if self.shoot_cooldown_timer > 0:
             return
 
@@ -86,7 +91,9 @@ class Drone(LivingEntity):
         self.event_bus.emit(EventType.PLAYER_SHOOT, pos=spawn_pos,
             direction=payload.direction, shooter_velocity=pg.Vector2(self._velocity))
         self.shoot_cooldown_timer = DRONE_SHOOT_COOLDOWN
-    def mine(self, payload: MineIntent, map: Map, dt):
+
+    def mine(self, payload: MineIntent, map: Map, dt: float) -> None:
+        """копание тайлов на карте. Вызывает mine у Map, если копание возможно"""
         direction = payload.mouse_pos - (self.pos + self.size / 2)
         drone_center_pos = self.pos + self.size / 2
         direction.scale_to_length(MINE_REACH_DIST)
@@ -94,11 +101,13 @@ class Drone(LivingEntity):
         map.mine(mine_world_pos // TILE_SIZE, direction, dt, entity=self)
         self.debug.set('inventiry', self.inventory)
 
-    def die(self):
+    def die(self) -> None:
+        """смерть. Отправляет событие PLAYER_DEATH"""
         self._velocity *= 0
         self.event_bus.emit(EventType.PLAYER_DEATH)
 
-    def heal_drill(self, *args):
+    def heal_drill(self, *args) -> None:
+        """лечение бура засчёт меди"""
         if self.is_holding_heal:
             return
         self.event_bus.emit(EventType.HEAL_DRILL)

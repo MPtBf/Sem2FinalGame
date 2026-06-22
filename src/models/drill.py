@@ -8,6 +8,7 @@ from src.settings.base import GroundMaterial, EventType, Intent
 from src.settings.balance import DRILL_ACCELERATION, DRILL_DECELERATION, DRILL_MAX_SPEED, DRILL_HEALTH, DRILL_SIZE, DRONE_ACCELERATION, ENTITY_TO_MINE_EFFICIENCY
 
 class Drill(LivingEntity):
+    """класс бура. Двигается при включении и касании с дроном, копает тайлы"""
     def __init__(self, pos: pg.Vector2, event_bus, debug):
         super().__init__(pos, pg.Vector2(*DRILL_SIZE), ObjectType.DRILL, DRILL_HEALTH)
         self.storage = {}
@@ -16,7 +17,8 @@ class Drill(LivingEntity):
         self._is_holding_toggle = False
         self._is_toggled = False  # toggle movement by player input
 
-    def update_logic(self, dt, world, intents=None):
+    def update_logic(self, dt, world, intents=None) -> None:
+        """обновление логики бура. Обрабатывает интенты, обновляет скорость, учитывает столкновения, копает тайлы"""
         super().update_logic(dt, world, intents)
 
         # handle toggle intent with hold detection
@@ -46,24 +48,29 @@ class Drill(LivingEntity):
             self._velocity.normalize_ip()
             self._velocity *= DRILL_MAX_SPEED
 
-    def after_move(self, axis, world):
+    def after_move(self, axis, world) -> None:
+        """вызов после перемещения бура - копает тайлы на карте"""
         # Drill mines after moving along each axis (made for future: diagonal movement)
-        self.mine(world.map, world.dt)
+        self._mine(world.map, world.dt)
 
-    def _is_saddled_by_drone(self, drone: Drone):
+    def _is_saddled_by_drone(self, drone: Drone) -> bool:
+        """проверка, касается ли дрон бура"""
         return self.rect.colliderect(drone.rect) and drone.is_alive
 
-    def mine(self, map_obj: Map, dt):
+    def _mine(self, map_obj: Map, dt: float) -> None:
+        """копание тайлов на карте"""
         # find tiles we are colliding with using optimized grid lookup
         collided_with_tiles = map_obj.get_tiles_in_rect(self.rect)
         
         for wall in collided_with_tiles:
             map_obj.mine(wall.tile_pos, self._velocity, dt, self)
 
-    def heal(self, abount: int):
+    def heal(self, abount: int) -> None:
+        """лечение бура. Увеличивает здоровье на заданное количество"""
         self.health += abount
     
-    def die(self):
+    def die(self) -> None:
+        """смерть бура. Скрывает бура устанавливает скорость в 0, и отправляет событие Game Over"""
         self.is_visible = False
         self._velocity *= 0
         self.event_bus.emit(EventType.GAME_OVER)

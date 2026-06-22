@@ -12,8 +12,10 @@ from src.views.debug_renderer import DebugRenderer
 
 
 class Game:
+    """главный класс игры"""    
     def __init__(self):
-        self.screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pg.FULLSCREEN if IS_FULLSCREEN else 0)
+        pg.display.set_caption("<<< Deep Relic >>>")
         self.clock = pg.time.Clock()
 
         self.event_bus = EventBus()
@@ -25,33 +27,43 @@ class Game:
         self.game_over = False
         self.is_running = True
         self.dt = 1/FPS
+        self.game_speed = 1.0
 
         self.event_bus.subscribe(EventType.GAME_OVER, self._on_game_over)
 
-    def _setup_world(self):
+    def _setup_world(self) -> None:
+        """установка мира"""
         self.world_handler = WorldHandler(self.event_bus, self.debug)
         self.input_handler = InputHandler()
         self.camera = Camera(self.screen, pg.Vector2(*self.screen.get_size()))
         self.ui_manager = UIManager(self.screen, self.camera)
         self.renderer = Renderer(self.screen, self.camera, self.world_handler, self.ui_manager, self.debug)
 
-    def _on_game_over(self):
+    def _on_game_over(self) -> None:
+        """обработка события GAME_OVER"""
         self.game_over = True
 
-    def _on_game_reset(self):
+    def _on_game_reset(self) -> None:
+        """обработка события GAME_RESET"""
         self.game_over = False
         self._setup_world()
 
-    def _handle_window_events(self):
+    def _handle_window_events(self) -> list:
+        """обработка и получение списка событий окна.
+        returns: список pygame событий"""
         events = pg.event.get()
         for event in events:
             if event.type == pg.QUIT:
                 self.is_running = False
-            if event.type == pg.KEYDOWN and event.key == dict_key_from_value(KEY_TO_INTENT, Intent.PAUSE):
-                self.is_paused = not self.is_paused
+            if event.type == pg.KEYDOWN:
+                if event.key == dict_key_from_value(KEY_TO_INTENT, Intent.PAUSE):
+                    self.is_paused = not self.is_paused
+                if event.key == dict_key_from_value(KEY_TO_INTENT, Intent.SPEED_UP):
+                    self.game_speed = SPEED_MULTIPLIER if self.game_speed == 1.0 else 1.0
         return events
 
-    def run(self):
+    def run(self) -> None:
+        """запуск цикла игры"""
         while self.is_running:
             if self.debug:
                 self.debug.set('fps', self.clock.get_fps())
@@ -77,4 +89,4 @@ class Game:
             
             pg.display.flip()
 
-            self.dt = self.clock.tick(FPS) / 1000
+            self.dt = self.clock.tick(FPS) / 1000 * self.game_speed

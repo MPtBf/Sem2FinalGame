@@ -10,7 +10,7 @@ from src.models.projectile import Projectile
 from src.utils.shortcuts import TC
 from src.views.camera import Camera
 from .event_bus import EventBus, EventType
-from src.settings.base import FPS, ItemType, PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
+from src.settings.base import FPS, Intent, ItemType, PlayerState, ObjectType, GroundMaterial, TILE_SIZE, ProjectileOwner
 from src.settings.balance import (
     BULLETS_PER_COPPER, DRILL_HP_PER_PATCH, DRILL_HEALTH, DRILL_SPAWN_POS,
     DRONE_SPAWN_POS, ENEMY_SIZE, ENTITY_WEIGHT_MAP, INITIALLY_ALLOCATED_RESOURCES,
@@ -20,6 +20,7 @@ from src.settings.balance import (
 
 
 class WorldHandler:
+    """класс обработчика мира, управление объектами, столкновениями, событиями"""
     def __init__(self, event_bus: EventBus, debug=None):
         self.event_bus = event_bus
         self.debug = debug
@@ -39,23 +40,27 @@ class WorldHandler:
         self.event_bus.subscribe(EventType.HEAL_DRILL, self._on_player_heal_drill)
         self.event_bus.subscribe(EventType.ENEMY_DEATH, self._on_enemy_death_event)
 
-    def _on_enemy_death_event(self, enemy: Enemy):
+    def _on_enemy_death_event(self, enemy: Enemy) -> None:
+        """обработка события ENEMY_DEATH"""
         self.enemies.remove(enemy)
 
-    def _setup_drone(self, pos: pg.Vector2):
+    def _setup_drone(self, pos: pg.Vector2) -> None:
+        """установка дрона"""
         self.drone = Drone(pos, self.debug)
         self.drone.inventory = {item: INITIALLY_ALLOCATED_RESOURCES[item] for item in self.drone.inventory}
 
         self.drone.event_bus = self.event_bus
 
-    def _on_enemy_spawn(self, tile_pos: pg.Vector2):
+    def _on_enemy_spawn(self, tile_pos: pg.Vector2) -> None:
+        """обработка события ENEMY_SPAWN"""
         world_pos = tile_pos * TILE_SIZE
         # center the enemy on the tile
         center_offset = (pg.Vector2(TILE_SIZE, TILE_SIZE) - pg.Vector2(*ENEMY_SIZE)) / 2
         enemy = Enemy(world_pos + center_offset, self.event_bus)
         self.enemies.append(enemy)
 
-    def _on_player_shoot(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2):
+    def _on_player_shoot(self, pos: pg.Vector2, direction: pg.Vector2, shooter_velocity: pg.Vector2) -> bool:
+        """обработка события PLAYER_SHOOT"""
         # consume bullet (copper for now)
         if self.drone.inventory[ItemType.COPPER] - 1 / BULLETS_PER_COPPER <= 0:
             return False
@@ -66,7 +71,8 @@ class WorldHandler:
         )
         return True
 
-    def _on_player_heal_drill(self):
+    def _on_player_heal_drill(self) -> bool:
+        """обработка события HEAL_DRILL"""
         if self.drone.inventory[ItemType.COPPER] - 1 <= 0:
             return False
         if not self.drill.rect.colliderect(self.drone.rect):
@@ -80,17 +86,19 @@ class WorldHandler:
         self.drill.heal(amount)
         return True
 
-    def _on_player_death(self):
+    def _on_player_death(self) -> None:
+        """обработка события PLAYER_DEATH"""
         self.player_state = PlayerState.RESPAWNING
 
-    def _on_player_respawn(self):
+    def _on_player_respawn(self) -> None:
+        """обработка события PLAYER_RESPAWN"""
         # spawn new drone in the center of a drill
         respawn_pos = self.drill.pos + self.drill.size / 2 - self.drone.size / 2
         self._setup_drone(pg.Vector2(respawn_pos))
         self.player_respawns_in = PLAYER_RESPAWN_TIME
         self.player_state = PlayerState.ALIVE
 
-    def update(self, dt, intents: dict):
+    def update(self, dt, intents: dict[Intent, any]) -> None:
         self.dt = dt
 
         dynamic_objects = self.get_dynamic_objects()
@@ -125,19 +133,20 @@ class WorldHandler:
             self.debug.set('projectiles', len(self.projectiles))
             self.debug.set('tiles_since_cave', self.map.tiles_mined_since_last_cave)
 
-    def get_all_objects_in_rect(self) -> list[GameObject]:
-        return self.enemies + self.projectiles + self.map.get_tiles_list() + [self.drone, self.drill]
-
     def get_dynamic_objects(self) -> list[DynamicObject]:
+        """получение списка динамических объектов в мире: враги, пули, бур, дрон"""
         return self.enemies + self.projectiles + [self.drone, self.drill]
 
     def get_all_objects_in_rect(self, rect) -> list[GameObject]:
+        """получение списка всех объектов, касающихся прямоугольника"""
         # only objects in rect, for efficient rendering
         static = self.map.get_tiles_in_rect(rect)
         dynamic = [obj for obj in self.get_dynamic_objects() if rect.colliderect(obj.rect)]
         return static + dynamic
 
-    def _resolve_collisions(self, obj, axis):
+    def _resolve_collisions(self, obj, axis: str) -> bool:
+        """решение коллизий между объектом и стеной по axis оси
+        returns: True, если произошла коллизия, False - иначе"""
         # only handle wall collisions physics
         collided = False
         if obj.object_type in (ObjectType.DRILL, ObjectType.DRONE, ObjectType.ENEMY):
@@ -158,7 +167,7 @@ class WorldHandler:
                     elif obj.velocity.y < 0: # moving up
                         obj.rect.top = wall.rect.bottom
             
-            # decrease the velocity
+            # decrease the velocity over time
             if collided:
                 if axis == 'x':
                     obj.velocity.x *= VELOCITY_LOSS_ON_COLLISION
@@ -167,7 +176,8 @@ class WorldHandler:
 
         return collided
 
-    def _manage_entities(self, dt):
+    def _manage_entities(self, dt: float) -> None:
+        """управление сущностями: удаление мертвых, обновление возрождения игрока"""
         # remove dead enemies
         self.projectiles = [p for p in self.projectiles if p.alive]
 
@@ -177,7 +187,8 @@ class WorldHandler:
             if self.player_respawns_in <= 0:
                 self._on_player_respawn()
 
-    def _handle_projectiles(self):
+    def _handle_projectiles(self) -> None:
+        """обработка коллизий между пули и стеной"""
         # projectile-wall collisions (simple death check)
         for projectile in self.projectiles:
             if not projectile.alive:
@@ -187,7 +198,8 @@ class WorldHandler:
                     projectile.die()
                     break
 
-    def _handle_combat(self):
+    def _handle_combat(self) -> None:
+        """обработка урона от пуль и касания"""
         # projectile damage
         for projectile in self.projectiles:
             if not projectile.alive:
@@ -199,17 +211,6 @@ class WorldHandler:
                     if projectile.rect.colliderect(enemy.rect):
                         knockback_dir = projectile.velocity if projectile.velocity.length() > 0 else None
                         enemy.take_damage(PROJECTILE_DAMAGE, knockback_dir)
-                        projectile.die()
-                        break
-
-            # enemy projectiles damage player entities
-            elif projectile.owner_type == ProjectileOwner.ENEMY:
-                for target in [self.drill, self.drone]:
-                    if projectile.rect.colliderect(target.rect):
-                        knockback_dir = projectile.velocity
-                        if knockback_dir.length() == 0:
-                            knockback_dir = None
-                        target.take_damage(PROJECTILE_DAMAGE, knockback_dir)
                         projectile.die()
                         break
 
@@ -227,7 +228,8 @@ class WorldHandler:
                     if is_success:
                         enemy.apply_knockback(-knockback_dir)
 
-    def _resolve_soft_collisions(self):
+    def _resolve_soft_collisions(self) -> None:
+        """отталкивание сущностей друг от друга при касании"""
         # push certain entities apart if they overlap
         entities = self.enemies + [self.drill]
         for i in range(len(entities)):

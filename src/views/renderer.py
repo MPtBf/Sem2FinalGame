@@ -11,7 +11,7 @@ from src.models.map import GroundMaterial
 
 
 class Renderer:
-    """class to render everything on the screen"""
+    """отображение ВСЕГО на экране"""
     def __init__(self, screen, camera: Camera, world_handler: WorldHandler, ui_manager: UIManager, debug: DebugCollector) -> None:
         self.screen = screen
         self.camera = camera
@@ -22,7 +22,8 @@ class Renderer:
 
         self._setup_images()
 
-    def _setup_images(self):
+    def _setup_images(self) -> None:
+        """настраивает изображения всех объектов в игре"""
         self.sprites = {}
         for object_type in ObjectType:
             if object_type == ObjectType.GROUND:
@@ -32,14 +33,14 @@ class Renderer:
             else:
                 self.sprites[object_type] = self._get_image(object_type)
 
-    def _get_image(self, object_type, ground_material=None):
+    def _get_image(self, object_type, ground_material=None) -> pg.Surface:
+        """получение картинки для объекта object_type, если существует. Иначе заливка дефолтным цветом"""
         if object_type == ObjectType.GROUND:
             image_path = OBJECT_TO_TEXTURE_PATH.get(object_type).get(ground_material)
         else:
             image_path = OBJECT_TO_TEXTURE_PATH.get(object_type)
         size = OBJECT_TO_SIZE[object_type]
         if image_path is None:
-            print('no imgae', object_type, ground_material)
             if object_type == ObjectType.GROUND:
                 color = DEFAULT_OBJECT_COLORS[object_type][ground_material]
             else:
@@ -53,7 +54,7 @@ class Renderer:
         return surface
 
 
-    def render(self, is_paused):
+    def render(self, is_paused: bool) -> None:
         self.screen.fill(BACKGROUND_COLOR)
         
         # rendering optimization: get only visible objects from the grid

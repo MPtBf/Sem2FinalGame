@@ -7,16 +7,6 @@ from src.settings.balance import ENEMY_HEALTH, ENEMY_CONTACT_DAMAGE, ENEMY_DAMAG
 from src.settings.base import FMSState, PlayerState, EventType, ObjectType, GroundMaterial, TILE_SIZE
 from src.utils.astar import find_path
 
-class MapTilesAdapter:
-    def __init__(self, game_map):
-        self._map = game_map
-
-    def get(self, pos: tuple[int, int]):
-        tile = self._map.get_tile_at(pos)
-        if tile is not None:
-            return tile.ground_material
-        return GroundMaterial.STONE
-
 
 class Enemy(LivingEntity):
     def __init__(self, pos: pg.Vector2, event_bus: EventBus):
@@ -36,14 +26,17 @@ class Enemy(LivingEntity):
         self._path_timer = 0.0
         self._path_update_interval = 0.3
 
-    def update_logic(self, dt, world, intents=None):
+    def update_logic(self, dt, world, intents=None) -> None:
+        """Обновление логики врага - обработка интентов, обновление физики"""
+
         super().update_logic(dt, world, intents)
         if self._damage_cooldown > 0:
             self._damage_cooldown -= dt
 
         self._update_intents(dt, world)
 
-    def _find_target(self, world):
+    def _find_target(self, world) -> None:
+        """Находит цель - игрока или бур, если они живы и в зоне видимости. Обновляет состояние и цель"""
         # movement towards nearest of drone (if player alive) or drill
         vec_to_drone = world.drone.pos + world.drone.size/2 - self.pos - self.size/2
         vec_to_drill = world.drill.pos + world.drill.size/2 - self.pos - self.size/2
@@ -70,7 +63,8 @@ class Enemy(LivingEntity):
             self.target_pos = None
             self.state = FMSState.IDLE
 
-    def _update_intents(self, dt, world):
+    def _update_intents(self, dt, world) -> None:
+        """Обработка интентов. Обновляет скорость и действия"""
         # select target
         self._find_target(world)
 
@@ -83,7 +77,8 @@ class Enemy(LivingEntity):
 
         self._update_physics()
 
-    def _walk_around(self):
+    def _walk_around(self) -> None:
+        """состояние IDLE"""
         ...  # walk around randomly (in the future)
 
         # calculatng deceleration
@@ -93,7 +88,8 @@ class Enemy(LivingEntity):
             self._acceleration *= 0
             self._velocity *= 0
 
-    def _chase_target(self, dt, world):
+    def _chase_target(self, dt, world) -> None:
+        """состояние CHASING, движение к цели по A*"""
         if not self.target_pos:
             self._acceleration *= 0
             return
@@ -112,8 +108,7 @@ class Enemy(LivingEntity):
         self._path_timer += dt
         if not self._path or self._path_timer >= self._path_update_interval:
             self._path_timer = 0.0
-            adapter = MapTilesAdapter(world.map)
-            self._path = find_path(adapter, enemy_tile, target_tile)
+            self._path = find_path(world.map.tiles, enemy_tile, target_tile)
             if self._path is None:
                 self._path = []
 
@@ -145,19 +140,22 @@ class Enemy(LivingEntity):
                 self._acceleration *= 0
                 self._velocity *= 0
 
-    def _update_physics(self):
+    def _update_physics(self) -> None:
+        """Обновляет физику врага"""
         self._velocity += self._acceleration
 
         # limit speed to max speed
         if self._velocity.length() > ENEMY_MAX_SPEED:
             self._velocity.scale_to_length(ENEMY_MAX_SPEED)
 
-    def try_damage(self, target, knockback_direction: pg.Vector2 = None):
+    def try_damage(self, target, knockback_direction: pg.Vector2 = None) -> bool:
+        """попытка ударить target сущность. ызывает target.take_damage если кулдакн позволяет"""
         if self._damage_cooldown <= 0:
             target.take_damage(ENEMY_CONTACT_DAMAGE, knockback_direction)
             self._damage_cooldown = ENEMY_DAMAGE_COOLDOWN_SEC
             return True
         return False
 
-    def die(self):
+    def die(self) -> None:
+        """смерть врага. Вызывает событие ENEMY_DEATH"""
         self.event_bus.emit(EventType.ENEMY_DEATH, enemy=self)
